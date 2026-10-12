@@ -8,7 +8,7 @@ import { applyMapArchitectOpenerToUi, normalizeMapArchitectOpener, syncMapArchit
 
 export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRefresh = null) {
     const runtime = getRuntimeActions();
-    const { applyPortraitData, autoApplySysprompt, bindCharacterCreationConnectionSettings, bindQuickStartEvents, blockToItems, buildCombatAndSkillScalingHint, buildNpcInstruction, buildOnboardingActiveBlocks, buildOnboardingTimeHint, buildOnboardingXpHint, buildStartingGearHint, createDetachedPanel, createOrSelectGameMasterCard, extractCharNameFromMemo, fileToDataUrl, generatePersonaBio, getCharacterCreationConnectionSettings, getPageSize, getSettings, handleCategorySettings, handleCharacterCreatorGenerate, handleRecolor, loadBenchedExpanded, loadCollapsed, loadDetached, loadPartyCompact, maybeCreateOnboardingPersona, openAdventureCompanion, openConnectionsModelsSettings, parseMemoBlocks, refreshAgentManifest, refreshNpcManifest, refreshRenderedView, registerDiceFunctionTool, removeArchivedQuest, resolveActivePersonaDescription, saveActiveTab, saveBenchedExpanded, saveCollapsed, saveDetached, savePartyCompact, saveSettings, scaleImageTo512Square, scheduleAutoApply, sendDirectPrompt, setInitialDateValue, setInitialTimeValue, setUse24hTime, setUseDdMmYyFormat, showCharacterRollPanel, showLorebookAgentDocumentation, showNarrativePacingExplanation, showPcImportPanel, showPersonaConfirmOverlay, showPortraitSettingsMenu, showQuestsHardcoreExplanation, showRngExplanation, showSettingsHelpPopup, syncOnboardingPersonaPrefsFromDom, syncOnboardingUI } = runtime;
+    const { applyPortraitData, autoApplySysprompt, bindCharacterCreationConnectionSettings, bindQuickStartEvents, blockToItems, buildCombatAndSkillScalingHint, buildNpcInstruction, buildOnboardingActiveBlocks, buildOnboardingTimeHint, buildStartingGearHint, createDetachedPanel, createOrSelectGameMasterCard, extractCharNameFromMemo, fileToDataUrl, generatePersonaBio, getCharacterCreationConnectionSettings, getPageSize, getSettings, handleCategorySettings, handleCharacterCreatorGenerate, handleRecolor, loadBenchedExpanded, loadCollapsed, loadDetached, loadPartyCompact, maybeCreateOnboardingPersona, openAdventureCompanion, openConnectionsModelsSettings, parseMemoBlocks, refreshAgentManifest, refreshNpcManifest, refreshRenderedView, registerDiceFunctionTool, removeArchivedQuest, resolveActivePersonaDescription, saveActiveTab, saveBenchedExpanded, saveCollapsed, saveDetached, savePartyCompact, saveSettings, scaleImageTo512Square, scheduleAutoApply, sendDirectPrompt, setInitialDateValue, setInitialTimeValue, setUse24hTime, setUseDdMmYyFormat, showCharacterRollPanel, showLorebookAgentDocumentation, showNarrativePacingExplanation, showPcImportPanel, showPersonaConfirmOverlay, showPortraitSettingsMenu, showQuestsHardcoreExplanation, showRngExplanation, showSettingsHelpPopup, syncOnboardingPersonaPrefsFromDom, syncOnboardingUI } = runtime;
     const _sectionPages = sectionPages;
 
     const refresh = onRefresh || refreshRenderedView;
@@ -134,21 +134,6 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
         }
         setNameRequiredButtonsEnabled(!!selectedOnboardingName);
     });
-
-    // Starting Level change & persistent preference save (including "none").
-    const bindLevelSelect = (selectEl) => {
-        if (!selectEl || selectEl._levelBound) return;
-        selectEl._levelBound = true;
-        selectEl.addEventListener('change', () => {
-            getSettings().onboardingLevel = selectEl.value === 'none'
-                ? 'none'
-                : (parseInt(selectEl.value, 10) || 1);
-            saveSettings();
-            syncOnboardingUI();
-        });
-    };
-    bindLevelSelect(el.querySelector('#rt-starting-level'));
-    bindLevelSelect(el.querySelector('#rt-cr-level'));
 
     // Combat & Skill Scaling Guide toggle (shared across onboarding + Character Creator)
     const bindCombatGuideCb = (cb) => {
@@ -302,11 +287,6 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
             const passChatId = getActiveChatId();
             const ownsChat = createChatCommitGuard(passChatId, getActiveChatId);
             const archetype = btn.dataset.archetype;
-            const levelSelectEl = el.querySelector('#rt-starting-level');
-            const levelRawVal = String(levelSelectEl?.value ?? getSettings().onboardingLevel ?? 1);
-            const noLevel = levelRawVal === 'none';
-            const level = noLevel ? null : (parseInt(levelRawVal, 10) || 1);
-            getSettings().onboardingLevel = noLevel ? 'none' : level;
             const gearTierEl = /** @type {HTMLSelectElement|null} */ (el.querySelector('#rt-onboarding-gear-tier'));
             const gearTier = gearTierEl?.value || getSettings().onboardingGearTier || 'auto';
             getSettings().onboardingGearTier = gearTier;
@@ -341,27 +321,14 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
             const selectedNameInstruction = ` The character's name MUST be "${selectedName}" exactly.`;
             // Gate optional blocks on enabled modules
             const _mods = getSettings().modules || {};
-            const _hasXp        = !!_mods['xp'];
             const _hasTime      = !!_mods['time'];
             const _hasInventory = !!_mods['inventory'];
             const _hasAbilities = !!_mods['abilities'];
             const _hasSpells    = !!_mods['spells'];
 
-            const levelPrefix = noLevel
-                ? `LEVEL SYSTEM: This character creation system does not use numeric character levels. Do NOT invent, assign, or output a level number, an [XP] block, or any D&D-style level indicator — balance the character using the setting's own internal logic instead.`
-                : _hasXp
-                    ? `STARTING LEVEL: ${level} (mandatory — the character MUST be exactly Level ${level}).`
-                    : `STARTING LEVEL: ${level} (mandatory — the character MUST be exactly Level ${level}; scale/adjust HP, stats, saves, capabilities, and gear (everything a character of that level might have) to Level ${level} accordingly, but do NOT output an [XP] block as it is disabled).`;
-
-            const xpHint = (_hasXp && !noLevel) ? buildOnboardingXpHint(level) : '';
             const TIME_FORMAT_HINT = _hasTime ? buildOnboardingTimeHint(startDateVal, getSettings().initialTime || '08:00 AM') : '';
-            const magicGearHint = buildStartingGearHint(noLevel ? 1 : level, getSettings().onboardingGenre || 'fantasy', _hasInventory, gearTier);
+            const magicGearHint = buildStartingGearHint(getSettings().onboardingGenre || 'fantasy', _hasInventory, gearTier);
             const combatSkillHint = getSettings().onboardingUseCombatScalingGuide !== false ? buildCombatAndSkillScalingHint() : '';
-            // Fixed quick-roll archetype templates (magic/melee/rogue/etc.) below hardcode
-            // "Level N" in their own copy — substitute a neutral filler level for them when
-            // "no levels" was chosen so they don't render "Level null". Custom and Persona
-            // (the freeform, user-directed paths) fully honor noLevel further below instead.
-            const templateLevel = noLevel ? 1 : level;
 
             const _activeBlocks = buildOnboardingActiveBlocks(getSettings());
             const _blockListStr  = _activeBlocks.join(', ');
@@ -390,7 +357,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
             // [CHARACTER]) is already present in the system prompt via buildModulesInstructionText().
             // A hardcoded example would compete with — and can override — that real format
             // (e.g. forcing BAB/Attr/Saves onto a homebrew system that doesn't use them).
-            const CHARACTER_FORMAT_HINT = `\n\nCRITICAL TAG WRAPPING RULE: Every block you output MUST be enclosed in matching opening and closing tags. You must output the closing tag for every block (${_closingTags}).\nCRITICAL PARTY RULE: Do NOT output a [PARTY] block under any circumstances unless explicitly instructed.\nCRITICAL QUESTS RULE: Do NOT add quests or output a [QUESTS] block under any circumstances unless explicitly instructed.\nCRITICAL FORMAT RULE: Follow the exact [CHARACTER]${_hasInventory ? '/[INVENTORY]' : ''}${_hasAbilities ? '/[ABILITIES]' : ''} field format, structure, and terminology defined in the module instructions provided in this system prompt — do not invent, omit, rename, or substitute fields, and do not fall back to a generic D&D template if the defined format differs from one.`;
+            const CHARACTER_FORMAT_HINT = `\n\nCRITICAL TAG WRAPPING RULE: Every block you output MUST be enclosed in matching opening and closing tags. You must output the closing tag for every block (${_closingTags}).\nCRITICAL PARTY RULE: Do NOT output a [PARTY] block under any circumstances unless explicitly instructed.\nCRITICAL QUESTS RULE: Do NOT add quests or output a [QUESTS] block under any circumstances unless explicitly instructed.\nCRITICAL FORMAT RULE: Follow the exact [CHARACTER]${_hasInventory ? '/[INVENTORY]' : ''}${_hasAbilities ? '/[ABILITIES]' : ''} field format, structure, and terminology defined in the module instructions provided in this system prompt — do not invent, omit, rename, or substitute fields, and do not fall back to a generic D&D template if the defined format differs from one. This game has no numeric character levels or XP; keep natural attributes and species-based maximum HP stable.`;
 
 
             const REALISTIC_HINT = `\n\nCRITICAL REALISM RULE: This is a realistic/non-fantasy setting.
@@ -413,19 +380,20 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
 - Wing it and homebrew fitting capabilities: adapt attributes, saves, gear, and skills for a tense horror survival setting.
 - Firearms (if any): when writing new gear/NPC/loot stats (not mid-scene conversion), damage ~2–3× D&D/PF firearm tables; common sense by type/caliber. Attack bonuses normal — only damage scales.`;
 
+            const levelFree = `Create a character with no numeric character level and no XP. Base starting competence on training, background, natural attributes, and setting-appropriate equipment. Skills and spells change only with credible story-supported practice or instruction; gear is the main combat progression.`;
             const prompts = {
-                magic:            `${levelPrefix} Generate a random Level ${templateLevel} D&D Magic User (Wizard, Sorcerer, or Warlock). Give them a random fantasy name (do NOT use {{user}}). Output ${_blockListStr} blocks${_hasSpells ? " (using 'Cantrips:' for level 0 spells)" : ''}. Include appropriate${_hasSpells ? ' spells,' : ''} items, and attributes consistent with Level ${templateLevel}.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${magicGearHint}`,
-                melee:            `${levelPrefix} Generate a random Level ${templateLevel} D&D Melee Fighter (Fighter, Barbarian, or Paladin). Give them a random fantasy name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on high physical attributes, heavy armor, and signature weapons consistent with Level ${templateLevel}.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${magicGearHint}`,
-                rogue:            `${levelPrefix} Generate a random Level ${templateLevel} D&D Rogue or Thief-style character. Give them a random fantasy name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on high Dexterity, stealth-related equipment, and class features consistent with Level ${templateLevel}.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${magicGearHint}`,
-                professional:     `${levelPrefix} Generate a random Level ${templateLevel} modern professional/specialist character. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on specialized professional skills, modern gear, and attributes consistent with a Level ${templateLevel} specialist.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${REALISTIC_HINT}`,
-                survivor:         `${levelPrefix} Generate a random Level ${templateLevel} survivor character. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on physical resilience, survival/scavenged gear, and attributes consistent with a Level ${templateLevel} survivor.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${REALISTIC_HINT}`,
-                scholar:          `${levelPrefix} Generate a random Level ${templateLevel} intellectual/scholar character. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on intelligence, knowledge-based traits, research tools/gear, and attributes consistent with an intellectual Level ${templateLevel} scholar.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${REALISTIC_HINT}`,
-                scifi_pilot:      `${levelPrefix} Generate a random Level ${templateLevel} sci-fi pilot/ace character. Give them a realistic or sci-fi-style name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on piloting skills, a signature ship/vehicle callsign, and sidearm/survival gear consistent with Level ${templateLevel}.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${SCIFI_HINT}`,
-                scifi_engineer:   `${levelPrefix} Generate a random Level ${templateLevel} sci-fi engineer/technician character. Give them a realistic or sci-fi-style name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on technical skills, tools/gadgets, and gear consistent with a Level ${templateLevel} engineer.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${SCIFI_HINT}`,
-                scifi_marine:     `${levelPrefix} Generate a random Level ${templateLevel} sci-fi combat marine/soldier character. Give them a realistic or sci-fi-style name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on combat training, powered armor or tactical gear, and weaponry consistent with a Level ${templateLevel} marine.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${SCIFI_HINT}`,
-                horror_investigator: `${levelPrefix} Generate a random Level ${templateLevel} horror investigator character. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on investigative skills, mundane gear, and a fraying grip on sanity consistent with Level ${templateLevel}.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${HORROR_HINT}`,
-                horror_occultist: `${levelPrefix} Generate a random Level ${templateLevel} occultist character with forbidden knowledge. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks.${_hasAbilities ? ' Represent any ritual or occult knowledge as entries in [ABILITIES] rather than spells,' : ''} consistent with Level ${templateLevel}.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${HORROR_HINT}`,
-                horror_survivor:  `${levelPrefix} Generate a random Level ${templateLevel} horror survivor character. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on resourcefulness, improvised weapons/tools, and fragile but resilient stats consistent with Level ${templateLevel}.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${HORROR_HINT}`
+                magic: `${levelFree} Generate a fantasy magic user (Wizard, Sorcerer, or Warlock). Give them a random fantasy name (do NOT use {{user}}). Output ${_blockListStr} blocks${_hasSpells ? " and group spell slots by Rank I, Rank II, etc. (use 'Cantrips:' for cantrips)" : ''}. Choose spells and gear appropriate to their background.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${magicGearHint}`,
+                melee: `${levelFree} Generate a fantasy melee fighter (Fighter, Barbarian, or Paladin). Give them a random fantasy name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on credible physical training, suitable armor, and signature weapons.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${magicGearHint}`,
+                rogue: `${levelFree} Generate a fantasy rogue or thief-style character. Give them a random fantasy name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on practiced stealth skills, fitting tools, and equipment.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${magicGearHint}`,
+                professional: `${levelFree} Generate a modern professional/specialist. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on specialized professional skills and realistic modern gear.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${REALISTIC_HINT}`,
+                survivor: `${levelFree} Generate a survivor. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on resilience, survival knowledge, and plausible scavenged gear.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${REALISTIC_HINT}`,
+                scholar: `${levelFree} Generate an intellectual/scholar. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on knowledge-based skills and appropriate research tools.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${REALISTIC_HINT}`,
+                scifi_pilot: `${levelFree} Generate a sci-fi pilot/ace. Give them a realistic or sci-fi-style name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on piloting skills, a signature ship/vehicle callsign, and fitting gear.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${SCIFI_HINT}`,
+                scifi_engineer: `${levelFree} Generate a sci-fi engineer/technician. Give them a realistic or sci-fi-style name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on technical skills, tools/gadgets, and fitting gear.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${SCIFI_HINT}`,
+                scifi_marine: `${levelFree} Generate a sci-fi combat marine/soldier. Give them a realistic or sci-fi-style name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on combat training, powered armor or tactical gear, and weaponry.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${SCIFI_HINT}`,
+                horror_investigator: `${levelFree} Generate a horror investigator. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on investigative skills, mundane gear, and vulnerability.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${HORROR_HINT}`,
+                horror_occultist: `${levelFree} Generate an occultist with forbidden knowledge. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks.${_hasAbilities ? ' Represent ritual or occult knowledge in [ABILITIES] rather than spells.' : ''}${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${HORROR_HINT}`,
+                horror_survivor: `${levelFree} Generate a horror survivor. Give them a realistic name (do NOT use {{user}}). Output ${_blockListStr} blocks. Focus on resourcefulness, improvised weapons/tools, and fragile but resilient stats.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${HORROR_HINT}`
             };
 
             // ── Custom archetype: freeform character based entirely on custom instructions ──
@@ -436,9 +404,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
                 }
                 el.querySelectorAll('.rt-random-char-btn').forEach(b => b.disabled = true);
                 btn.textContent = labels.custom;
-                let customPrompt = noLevel
-                    ? `${levelPrefix} Generate a character based entirely on these custom instructions: "${customInstructions}".${selectedNameInstruction} Output ${_blockListStr} blocks${_hasSpells ? " (and [SPELLS] if appropriate for the class, using 'Cantrips:' for level 0 spells)" : ''}. Adapt all attributes, skills, saves, descriptions, and gear to match the setting and instructions perfectly — do not invent a numeric level.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${magicGearHint}`
-                    : `${levelPrefix} Generate a random Level ${level} character based entirely on these custom instructions: "${customInstructions}".${selectedNameInstruction} Output ${_blockListStr} blocks${_hasSpells ? " (and [SPELLS] if appropriate for the class, using 'Cantrips:' for level 0 spells)" : ''}. Adapt all attributes, skills, saves, descriptions, and gear to match the setting and instructions perfectly.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${magicGearHint}`;
+                let customPrompt = `${levelFree} Generate a character based entirely on these custom instructions: "${customInstructions}".${selectedNameInstruction} Output ${_blockListStr} blocks${_hasSpells ? " (and [SPELLS] if appropriate for the class; use 'Cantrips:' and Rank I, Rank II, etc.)" : ''}. Adapt attributes, skills, saves, descriptions, and gear to the setting and instructions.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${magicGearHint}`;
                 if (isCalendar) {
                     customPrompt += `\n\nCRITICAL REALISM RULE: This is a realistic/non-fantasy setting. Do NOT output a [SPELLS] block. Use realistic modern/historical currencies instead of GP/SP/CP. Firearms on new gear/NPCs/loot: damage ~2–3× D&D/PF norms by common sense; attack bonuses unchanged (not mid-scene conversion).`;
                 }
@@ -481,9 +447,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
                 const nameClause = personaName
                     ? ` The character's name MUST be "${personaName}" (the active persona name).`
                     : '';
-                let personaPrompt = noLevel
-                    ? `${levelPrefix} Using the following persona description as the basis for the player character, create a character that faithfully embodies this persona.${nameClause} Translate the personality, background, and traits into appropriate stats, class, race, and equipment. Output ${_blockListStr} blocks${_hasSpells ? " (and [SPELLS] if the class is a spellcaster, using 'Cantrips:' for level 0 spells)" : ''}. Do not invent a numeric level — balance using the setting's own logic.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${magicGearHint}\n\nPersona${personaName ? ` — ${personaName}` : ''}:\n${resolvedPersona}`
-                    : `${levelPrefix} Using the following persona description as the basis for the player character, create a Level ${level} character that faithfully embodies this persona.${nameClause} Translate the personality, background, and traits into appropriate stats, class, race, and equipment. Output ${_blockListStr} blocks${_hasSpells ? " (and [SPELLS] if the class is a spellcaster, using 'Cantrips:' for level 0 spells)" : ''}. All attributes and gear should be consistent with Level ${level}.${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${magicGearHint}\n\nPersona${personaName ? ` — ${personaName}` : ''}:\n${resolvedPersona}`;
+                let personaPrompt = `${levelFree} Using the following persona description as the basis for the player character, create a character that faithfully embodies this persona.${nameClause} Translate the personality, background, and traits into appropriate stats, class, species, and equipment. Output ${_blockListStr} blocks${_hasSpells ? " and group spell slots by Rank I, Rank II, etc. (use 'Cantrips:' for cantrips)" : ''}.${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${magicGearHint}\n\nPersona${personaName ? ` — ${personaName}` : ''}:\n${resolvedPersona}`;
                 if (customInstructions) {
                     personaPrompt += `\n\nAdditional setting/instruction constraints: ${customInstructions}. Adapt the name, attributes, description, gear, and spells (if any) to match this setting/instruction perfectly.`;
                 }

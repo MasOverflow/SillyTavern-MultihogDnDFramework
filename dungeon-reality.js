@@ -282,7 +282,7 @@ export function normalizeMapSiteKind(value) {
     return enumValue(value, MAP_SITE_KINDS, 'DUNGEON');
 }
 
-/** Site danger for occupancy/traps — independent of party level and of scale (size). */
+/** Site danger for occupancy/traps — independent of party capability and geographic scale (size). */
 export function defaultMapSiteThreat(kind) {
     const normalized = normalizeMapSiteKind(kind);
     if (normalized === 'SETTLEMENT') return 'MODERATE';
@@ -1072,7 +1072,7 @@ export function formatDungeonMapForNarrator(documentOrContent, siteFallback = ''
     if (document.threat) {
         lines.push(document.threat === 'NONE'
             ? 'Site threat: NONE. Do not invent active hostile occupancy, armed traps, dangerous hazards, or violent conflict.'
-            : `Site threat: ${document.threat}. Enemy, trap, and hazard density follow this site danger — not party level.`);
+            : `Site threat: ${document.threat}. Enemy, trap, and hazard density follow this site danger — not party capability.`);
     }
     const routes = formatMapRoutes(document, areasById);
     if (routes.length) lines.push('', 'Routes:', ...routes);
@@ -3193,7 +3193,7 @@ export function buildDungeonRealityInjection(site, currentLocation, { activityTe
     const threatCanon = mapThreat
         ? mapThreat === 'NONE'
             ? ' Site threat is NONE: do not invent active hostile occupancy, armed traps, dangerous hazards, or violent conflict.'
-            : ` Site threat is ${mapThreat}: occupancy, traps, and hazards follow that site danger, not party level.`
+            : ` Site threat is ${mapThreat}: occupancy, traps, and hazards follow that site danger, not party capability.`
         : '';
     const activity = String(activityText || '').trim();
     const activityBlock = activity

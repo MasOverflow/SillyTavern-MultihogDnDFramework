@@ -119,7 +119,7 @@ KIND
 - INTERIOR = a significant lower-risk multi-room site such as a palace, headquarters, monastery, safehouse, or recurring base.
 
 SCALE is size, not danger: SMALL, MEDIUM, or LARGE.
-THREAT is site danger, never matched to party level: NONE, LOW, MODERATE, HIGH, or DEADLY. INTERIOR defaults to LOW; use NONE for explicitly peaceful sites.
+THREAT is site danger, never matched to party capability or equipment: NONE, LOW, MODERATE, HIGH, or DEADLY. INTERIOR defaults to LOW; use NONE for explicitly peaceful sites.
 
 ENTRANCE is the named way in the party would use, written in the campaign language.
 PROMPT is dense objective private design context: who holds the site, what exists there, topology guidance, and constraints. It does not grant the player knowledge. Do not invent the full map.

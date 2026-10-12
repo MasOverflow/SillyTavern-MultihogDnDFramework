@@ -114,16 +114,16 @@ The system rejects the traditional ST use of character cards, which are meant fo
 
 ### Instant Action (fastest path)
 
-On an empty tracker, use Instant Action / Quick Start by genre (**Fantasy**, **Modern**, **Sci-Fi**, **Horror**). Select a genre, optionally type or roll a name (leave it blank for the AI to choose), and optionally enter an **Initial Setup** for the character, starting setting, premise, or tone. Specified details override rolled defaults, while everything you omit remains randomized. Choose the Player Card word count you want, then select **Begin Instant Action**. Characters start at **Level 1 with 0 XP** unless **Random Level?** is checked (then 1–10). **Send Starter Message?** is on by default so the AI opens the campaign for you; uncheck it if you want to type your own first action. The pipeline is sequential:
+On an empty tracker, use Instant Action / Quick Start by genre (**Fantasy**, **Modern**, **Sci-Fi**, **Horror**). Select a genre, optionally type or roll a name (leave it blank for the AI to choose), and optionally enter an **Initial Setup** for the character, starting setting, premise, or tone. Specified details override rolled defaults, while everything you omit remains randomized. Choose the Player Card word count you want, then select **Begin Instant Action**. Characters start without a numeric level or XP. Starting competence follows their background, training, natural attributes, and setting-appropriate gear; equipment is the main source of combat progression. **Send Starter Message?** is on by default so the AI opens the campaign for you; uncheck it if you want to type your own first action. The pipeline is sequential:
 
 1. Applies your current Narrator Configuration (settings + sysprompt).
-2. Keeps a supplied name or invents one when blank, picks a random archetype from the genre, starts at Level 1 with 0 XP (or rolls 1–10 if Random Level is on, unless your system uses no numeric levels), then generates a character sheet into the State Tracker. Initial Setup details are treated as higher priority than the random archetype and starting level — so "a level 7 ranger" becomes a Level 7 Ranger regardless of the default or roll.
+2. Keeps a supplied name or invents one when blank, picks a random archetype from the genre, then generates a character sheet into the State Tracker. Initial Setup details guide the character's background, skills, spells, and gear; a requested character level or XP amount is treated as narrative experience or desired equipment quality without assigning or tracking a number.
 3. Generates a **Player Card** at the selected word count for Lorebook Agent, using both the character sheet and the same Initial Setup. It then creates/selects a SillyTavern persona with the same name and an empty description. The name-only ST persona controls the sender label without duplicating Player Card content in the prompt.
 4. If **Send Starter Message?** is checked, sends `Begin the adventure` together with any optional instructions so the narrator's opening matches the requested character, setting, and premise. If it is unchecked, Instant Action stops after the character is ready and waits for your first action.
 
 Character-sheet generation sends the model only the active tracker-module instructions as its system prompt. The full State Extractor core prompt is reserved for ordinary tracking and manual tracker commands.
 
-You can also use **Character Creator** with explicit name/class/level/gear, or paste an existing sheet into **Raw View**. In **Other Ways to Begin**, select a genre and use **Roll Name** until you have the name you want — or type/edit it directly — before choosing **Custom**. The **Persona** path keeps the active SillyTavern persona name, while **Import Card** keeps the imported card’s name. Character Creator and Other Ways to Begin have separate toggles for a Lorebook Agent Player Card and a name-only ST persona. If formatting doesn’t match what the UI expects, use the tracker’s **💬** button and ask the model to fix it.
+You can also use **Character Creator** with a name, background, skills, spells, and gear, or paste an existing sheet into **Raw View**. In **Other Ways to Begin**, select a genre and use **Roll Name** until you have the name you want — or type/edit it directly — before choosing **Custom**. The **Persona** path keeps the active SillyTavern persona name, while **Import Card** keeps the imported card’s name. Character Creator and Other Ways to Begin have separate toggles for a Lorebook Agent Player Card and a name-only ST persona. If formatting doesn’t match what the UI expects, use the tracker’s **💬** button and ask the model to fix it.
 
 The Character Creator random-name button uses the combined cross-genre name library without genre filtering. Random **Other Ways to Begin** generators use the matching genre pool and pass the selected full name to the character generator.
 
@@ -215,7 +215,7 @@ The prompt is modular XML-style sections, including among others:
 
 ### Combat rules the GM is taught (summary)
 
-`<combat_start>` — Declare previously-unknown NPC stats (AC, saves, HP, combat line, resistances, etc.), then roll initiative. Caster enemies list spells by level + slots at introduction (e.g. `Cantrips: Fire Bolt; Level 1 (2/2): Magic Missile, Shield`) — never a flat comma list.
+`<combat_start>` — Declare previously-unknown NPC stats (AC, saves, HP, combat line, resistances, etc.), then roll initiative. Caster enemies list spells by rank + slots at introduction (e.g. `Cantrips: Fire Bolt; Rank I (2/2): Magic Missile, Shield`) — never a flat comma list.
 
 `<combat_flow>` — Simulate every NPC each round. Use pre-calculated totals from STATE MEMO (`[CHARACTER]` / `[PARTY]` / `[COMBAT]`) — never re-derive bonuses mid-fight. Martials use Combat line Melee/Ranged values; casters use listed Spell Atk / Spell DC. Slash-separated values (`+X/+Y`) mean one roll per value. State remaining HP after every damage/heal. Buffs/debuffs expire on schedule; state initial duration (e.g. Mage Armor 8h, Heroism 10 turns).
 
@@ -377,7 +377,7 @@ Worth values can auto-render as coin badges in the UI.
 
 #### `[ABILITIES]` / `[SPELLS]`
 
-Abilities = non-spell class features only. Spells = cantrips + leveled slots `Level N (avail/max): …`. Never mix the two.
+Abilities = non-spell features only. Spells = cantrips + ranked slots `Rank I (avail/max): …`, `Rank II (avail/max): …`. Never mix the two. Skill and spell learning/improvement is recorded in the existing fields only when supported by credible story practice, instruction, discovery, or use; do not add use counters.
 
 #### `[TIME]`
 
@@ -387,9 +387,7 @@ Clock + last long rest. Format variants exist (12h/24h, Day N vs DD/MM/YYYY). Us
 - Distinguishing short rest (~1h) vs long rest
 - **World Progression** scheduling (in-world elapsed time)
 
-#### `[XP]`
-
-`Level: X | XP: current/max` whenever XP or level-up is narrated.
+Characters have no numeric level and never gain XP. Legacy `[XP]` tracker data remains stored for compatibility but is ignored in active prompts and rendered views. Generic `((PROGRESS))` markers remain available for unrelated project or task progress; `XPBAR` is retired.
 
 #### `[QUESTS]`
 
@@ -451,7 +449,7 @@ Adventure Companion has a separate connection selector with the same Main API / 
 
 Memo lines can include inline markers that the UI renders. Major families include:
 
-`PILL` / `PILLS`, `BAR` (and HP aliases), `BARREL` (signed +/- bar), `NPC` (freeform NPC cards inside blocks), `XPBAR`, `TEXT`, `BADGE`, `HIGHLIGHT`, `OBJ`, `REWARD`, `DIFFICULTY`, `PROGRESS`, alert styles (`WARNING` / `SUCCESS` / …), currency (`GOLD` / `SILVER` / `DOLLAR` / …), `ROLL`, `CLOCK`, `STARS`, `WEIGHT` / `CAPACITY`, `WEATHER`, `ORBS` / `AP`, `SLOTS`, `PHASE` / `STEP`, `GAUGE` / `METER`, `CHARGE` / `BATTERY`.
+`PILL` / `PILLS`, `BAR` (and HP aliases), `BARREL` (signed +/- bar), `NPC` (freeform NPC cards inside blocks), `TEXT`, `BADGE`, `HIGHLIGHT`, `OBJ`, `REWARD`, `DIFFICULTY`, `PROGRESS`, alert styles (`WARNING` / `SUCCESS` / …), currency (`GOLD` / `SILVER` / `DOLLAR` / …), `ROLL`, `CLOCK`, `STARS`, `WEIGHT` / `CAPACITY`, `WEATHER`, `ORBS` / `AP`, `SLOTS`, `PHASE` / `STEP`, `GAUGE` / `METER`, `CHARGE` / `BATTERY`.
 
 Coloring:
 
@@ -500,7 +498,7 @@ Splitting Body from Worn Equipment means the Lorebook Agent can keep gear in syn
 
 - **PC Body/Worn Equipment sync:** LA can update the linked Player Character card's `Body` and `Worn Equipment` fields the same way it updates NPCs — via `[[UPDATE_APPEARANCE: {{user}} | …]]` / `[[UPDATE_EQUIPMENT: {{user}} | …]]` (Basic) or `commit.appearance` / `commit.equipment` with id `{{user}}` / `player` / `pc` / the PC's name (Advanced). It never creates a PC lorebook entry and never edits the PC's Species/Personality/Background/Habits/Strengths/Flaws.
 - **Always-on tools:** Body and Worn Equipment updates (NPC or PC) are available on every pass — these are the two fields expected to change often enough that a Direct Prompt shouldn't be required every time.
-- **Automatic vs Direct Prompt for other CORE fields:** On a normal automatic cadence pass, `UPDATE_CORE` / `commit.core` may only touch **Combat Profile**. Create or fully replace it from `## ACTIVE COMBAT STATE` (`[COMBAT]`). If a party NPC already has a Combat Profile, also patch lasting combat stats (max HP, BAB, AC, saves, HD, class features) from `## PARTY MECHANICAL STATE` after level-up / PARTY LEVEL SYNC — do not invent a new Combat Profile from `[PARTY]`, and do not rewrite one just because current HP or slots ticked. Species, Personality, Background, Habits, Strengths, and Flaws are blocked at both prompt and code level on automatic passes — the agent only sees ~two messages and can brick a character if it rewrites identity from thin context. To edit those fields, use the Lorebook Agent **Direct Prompt** (or `/lorebookagent …` / Companion instruction): manual passes unlock the full eligible CORE field set, including Species.
+- **Automatic vs Direct Prompt for other CORE fields:** On a normal automatic cadence pass, `UPDATE_CORE` / `commit.core` may only touch **Combat Profile**. Create or fully replace it from `## ACTIVE COMBAT STATE` (`[COMBAT]`). If a party NPC already has a Combat Profile, patch lasting combat facts from `## PARTY MECHANICAL STATE` only when supported by a credible change such as equipment, training, injury, or transformation; natural attributes and species-based maximum HP stay stable. Do not invent a new Combat Profile from `[PARTY]`, and do not rewrite one just because current HP or slots ticked. Species, Personality, Background, Habits, Strengths, and Flaws are blocked at both prompt and code level on automatic passes — the agent only sees ~two messages and can brick a character if it rewrites identity from thin context. To edit those fields, use the Lorebook Agent **Direct Prompt** (or `/lorebookagent …` / Companion instruction): manual passes unlock the full eligible CORE field set, including Species.
 - **Cold-start gear seed:** On the **first** Lorebook Agent pass of a chat, if a `[CHARACTER]…[/CHARACTER]` block exists in the State Memo, it is injected once as `## PLAYER CHARACTER SHEET (initial reference — one-time)` so Worn Equipment updates can be grounded in what is actually equipped. Later passes do **not** re-inject CHARACTER/INVENTORY; infer subsequent look/gear changes from the narrative.
 
 
@@ -551,7 +549,7 @@ The Adventure Companion cannot flip the Components checkbox or open Visuals/Map 
 
 1. The narrator requests a map **once** while crossing into, or immediately after establishing entry into, an unmapped high-risk site (`kind: DUNGEON`), significant low-risk multi-room site (`kind: INTERIOR`), or town/city/village (`kind: SETTLEMENT`). Default threats are HIGH, LOW, and MODERATE respectively. Ordinary settlement buildings are not mapped merely because the party enters, owns, rents, or visits them.
    - **Tool call (default):** `CreateAreaMap`. Requires function calling. SillyTavern pauses the turn until Map Architect returns.
-   - **Text command:** Narrator Configuration → Components (when Persistent Maps is on) or Settings → Persistent Maps → Map Architect → **Text command**. The narrator may narrate the crossing, then emits a `[CREATE_AREA_MAP]...[/CREATE_AREA_MAP]` block (site, entrance, kind, scale, threat, detailed private `prompt`, separate `brief_description`, optional settlement-only include array) and stops. The prompt guides generation but is not stored as the gateway description. Scale is size; threat (`NONE` / `LOW` / `MODERATE` / `HIGH` / `DEADLY`) is site danger, never party level.
+   - **Text command:** Narrator Configuration → Components (when Persistent Maps is on) or Settings → Persistent Maps → Map Architect → **Text command**. The narrator may narrate the crossing, then emits a `[CREATE_AREA_MAP]...[/CREATE_AREA_MAP]` block (site, entrance, kind, scale, threat, detailed private `prompt`, separate `brief_description`, optional settlement-only include array) and stops. The prompt guides generation but is not stored as the gateway description. Scale is size; threat (`NONE` / `LOW` / `MODERATE` / `HIGH` / `DEADLY`) is site danger, independent of party capability or equipment.
 2. A dedicated **Map Architect** agent (own connection, model, lookback — default 12 recent chat messages, and per-pass output budget) builds a complete version-3 JSON map in two atomic stages. The first request outputs only areas, fixed geometry, knowledge, and reciprocal connections; it contains no asset contract. After that topology validates and locks, a separate customizable content-placement request returns only the asset array against those exact area IDs. Nothing is stored until the merged map validates. Map Architect, Map Updater, and Map Evolution output budgets default to 25,000 tokens and remain configurable. Map Architect and Map Evolution stream their replies — there is no Multihog idle timeout — so a long OpenRouter / nano-gpt job is not dropped after ~60s of silence while the model is still writing.
 3. A validator checks site/entrance identity, kind, scale, stable IDs, asset references, reciprocal passages, and that every room or district is reachable from the entrance. Invalid output gets up to two correction passes and is never partially saved.
 4. On success, JSON is stored in the **root Location** lorebook entry as a hidden `[MAP]` block. The narrator only receives compact private prose, not the raw JSON.
@@ -641,7 +639,7 @@ Previous trends are causal state, not a command to escalate. WP may intensify, p
 
 Deadlines and Frustration are enabled in the default narrator configuration. They give NPC quests time pressure and let overdue quests affect the giver's mood instead of being only a binary failure.
 
-Enable the Quests module (and optionally Deadlines / Frustration) in settings. Accepted quests appear in the tracker UI. Difficulty is narrative-only — the system does not soft-cap quest danger to party level; if you accept a dragon hunt at level 2, that is on you.
+Enable the Quests module (and optionally Deadlines / Frustration) in settings. Accepted quests appear in the tracker UI. Difficulty is narrative-only — the system does not soften danger to match character capability; accepting a dragon hunt remains the player's choice.
 
 ---
 

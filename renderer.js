@@ -4,12 +4,12 @@ import { escapeHtml, decodeHtml, highlightParens, highlightNumbers, parseInWorld
 import { BLOCK_ICONS, BLOCK_ORDER, PAGE_SIZE, NO_PAGINATE, renderStartingGearTierOptions } from './constants.js';
 import { isResolvedCombatantStatusLine, parseCombatSideHeader } from './src/state/combat-persistence.js';
 import { buildDisplayGroupRenderPlan } from './src/features/display-groups.js';
+import { stripLegacyXpBlocks } from './src/state/level-free-progression.js';
 
 // ── Renderer module: pure HTML string producers, localStorage helpers ──
 // No live DOM mutations. All functions return strings or void (localStorage).
 
 const DEFAULT_HP_COLOR = '#00ffaa';
-const DEFAULT_XP_COLOR = 'linear-gradient(90deg, #0088ff, #00d4ff)';
 const BUY_ME_A_COFFEE_ICON = new URL('./src/ui/buy_me_a_coffee-63ed78263f6e.svg', import.meta.url).href;
 
 /** CSS tint for any browser-supported solid color token (named or hexadecimal). */
@@ -136,7 +136,7 @@ export function renderDayNightBadge(str) {
         // badge styling even though it is not part of the badge.
         // A BAR color is a fill color, not a text color. Keeping it off the
         // label means `Hunger: ((BARBLUE)) 75/100` colors only the bar.
-        const colorLabel = rule.color && !['badge', 'badge_colored', 'pills', 'pill_colored', 'hp_bar', 'xp_bar', 'progress'].includes(rule.renderType);
+        const colorLabel = rule.color && !['badge', 'badge_colored', 'pills', 'pill_colored', 'hp_bar', 'progress'].includes(rule.renderType);
         const labelStyle = colorLabel ? ` style="color:${rule.color}"` : '';
         const labelHtml  = labelText
             ? `<span class="rt-entity-sub-label"${labelStyle}>${escapeHtmlWithColor(labelText)}</span>`
@@ -240,35 +240,6 @@ export function renderDayNightBadge(str) {
                     </div>`;
                 }
                 // Fallback: plain text
-                return `<div class="rt-entity-sub-line">${labelHtml} ${escapeHtmlWithColor(value)}</div>`;
-            }
-            case 'xp_bar': {
-                // Flexible: parses any "X/Y" with optional "Level N" anywhere in value
-                const xm = value.match(/(\d[\d,]*)\s*\/\s*(\d[\d,]*)/);
-                const lm = value.match(/level\s*(\d+)/i);
-                if (xm) {
-                    const cur = parseInt(xm[1].replace(/,/g, ''), 10);
-                    const max = parseInt(xm[2].replace(/,/g, ''), 10);
-                    const pct = max > 0 ? Math.max(0, Math.min(100, (cur / max) * 100)) : 0;
-                    const level = lm?.[1] || '';
-                    const levelStr = level ? `<span style="font-size:0.8em; opacity:0.75;">Lv ${level}</span> ` : '';
-                    let barBg = rule.color ? rule.color : DEFAULT_XP_COLOR;
-                    if (barId) barBg = getBarBackground(barId, barBg, pct);
-
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
-
-                    const showAsPct = getBarShowAsPercentage(barId);
-                    const dispCur = showAsPct ? Math.round(pct) : xm[1];
-                    const dispMax = showAsPct ? 100 : xm[2];
-
-                    return `<div class="rt-entity-sub-line rt-xp-row" data-xp-current="${cur}" data-xp-max="${max}" data-xp-level="${level}" data-xp-show-percentage="${showAsPct}" style="gap:6px;">
-                        ${labelHtml}
-                        <div class="rt-xp-bar-wrap"${recolorData} style="flex:1; height:12px;">
-                            <div class="rt-xp-bar" style="width:${pct.toFixed(1)}%; background:${barBg};"></div>
-                        </div>
-                        <span style="font-size:0.82em; opacity:0.85; white-space:nowrap;">${levelStr}<span class="rt-xp-current">${dispCur}</span>/<span class="rt-xp-max">${dispMax}</span></span>
-                    </div>`;
-                }
                 return `<div class="rt-entity-sub-line">${labelHtml} ${escapeHtmlWithColor(value)}</div>`;
             }
             case 'kv':
@@ -558,11 +529,11 @@ export function renderDayNightBadge(str) {
     }
 
     export function renderSpellGroups(val) {
-        const isCompound = /\|/.test(val) && /(?:Level\s*\d+|Cantrips?)/i.test(val);
+        const isCompound = /\|/.test(val) && /(?:Rank\s*(?:[IVXLCDM]+|\d+)|Cantrips?)/i.test(val);
         const groups = isCompound ? val.split(/\s*\|\s*/) : [val];
         let html = '';
         for (const group of groups) {
-            const m = group.trim().match(/^(Level\s*\d+|Cantrips?)\s*(?:\((\d+)\/(\d+)[^)]*\))?\s*(?::\s*(.+))?$/i);
+            const m = group.trim().match(/^(Rank\s*(?:[IVXLCDM]+|\d+)|Cantrips?)\s*(?:\((\d+)\/(\d+)[^)]*\))?\s*(?::\s*(.+))?$/i);
             if (!m) continue;
             const [, lbl, availStr, maxStr, spellList] = m;
             const isCantrip = /cantrip/i.test(lbl);
@@ -624,12 +595,11 @@ export function renderDayNightBadge(str) {
         BAR:{ renderType: 'hp_bar', example: '50/100 (Colored resource bar)' }, B:{ renderType: 'hp_bar', example: '50/100 (Colored resource bar)', aliasOf: 'BAR' }, HPBAR:{ renderType: 'hp_bar', example: '50/100 (Red HP/Standing)', aliasOf: 'BAR' }, HPB:{ renderType: 'hp_bar', example: '50/100 (Red HP/Standing)', aliasOf: 'BAR' }, HP: { renderType: 'hp_bar', example: '50/100 (Red HP/Standing)', aliasOf: 'BAR' },
         BARREL:{ renderType: 'barrel', example: 'Trust: -38/150 (signed centre-zero bar; click each side to recolor)' },
         NPC:{ renderType: 'npc', example: 'Gandolf: (freeform NPC card; uses a matching Lorebook Agent portrait)' },
-        XPBAR:{ renderType: 'xp_bar', example: '450/1000 Level 3 (XP/Progress)' }, XB:{ renderType: 'xp_bar', example: '450/1000 Level 3 (XP/Progress)', aliasOf: 'XPBAR' },
         TEXT:{ renderType: 'text', example: 'Some text (Plain)' },
         BADGE:{ renderType: 'badge', example: 'Neutral (Reputation badge)' }, BDG:{ renderType: 'badge', example: 'Neutral (Reputation badge)', aliasOf: 'BADGE' },
         HIGHLIGHT:{ renderType: 'highlight', example: 'Emphasis (Bright highlight text)' }, HGT:{ renderType: 'highlight', example: 'Emphasis (Bright highlight text)', aliasOf: 'HIGHLIGHT' },
         OBJ:{ renderType: 'objective', example: '✓ Done (Checked quest bullet)' },
-        REWARD:{ renderType: 'reward', example: '500 XP (Loot reward badge)' },
+        REWARD:{ renderType: 'reward', example: '500 GP (Loot reward badge)' },
         DIFFICULTY:{ renderType: 'difficulty', example: 'Hard (Difficulty star badge)' },
         PROGRESS:{ renderType: 'progress', example: '3/5 (Fraction progress)' },
         WARNING:{ renderType: 'badge_colored', color: '#f1c40f', example: 'Caution (Amber badge)' },
@@ -676,7 +646,7 @@ export function renderDayNightBadge(str) {
     export const MARKER_TOKEN_RE = new RegExp(`\\(\\((${MARKER_BASE_PATTERN})(?:(${NAMED_COLOR_PATTERN}))?(?:\\s*-\\s*(${MARKER_COLOR_PATTERN})(?:\\s+(${MARKER_COLOR_PATTERN}))?)?\\)\\)`, 'i');
 
     /** Render types whose default color is already a gradient/gradient-friendly bar fill. */
-    const GRADIENT_CAPABLE_RENDER_TYPES = new Set(['hp_bar', 'xp_bar', 'progress']);
+    const GRADIENT_CAPABLE_RENDER_TYPES = new Set(['hp_bar', 'progress']);
 
     /** Strictly validates an allowed CSS color token to prevent CSS injection. */
     function isValidMarkerColor(str) {
@@ -848,7 +818,7 @@ export function renderDayNightBadge(str) {
             } else {
                 // No colon. For progression types, try to split "Label X/Y" into "Label: X/Y"
                 // by finding the X/Y numeric pattern.
-                const PROGRESSION = new Set(['barrel', 'hp_bar', 'xp_bar', 'progress', 'clock', 'stars', 'weight', 'orbs', 'slots', 'phase', 'gauge', 'charge']);
+                const PROGRESSION = new Set(['barrel', 'hp_bar', 'progress', 'clock', 'stars', 'weight', 'orbs', 'slots', 'phase', 'gauge', 'charge']);
                 const numMatch = PROGRESSION.has(rule.renderType)
                     ? cleanPre.match(/^(.*?)\s+(\d[\d,]*\s*\/\s*\d[\d,]*.*)$/)
                     : null;
@@ -861,7 +831,7 @@ export function renderDayNightBadge(str) {
         }
 
         let barId = null;
-        const progressionTypes = ['barrel', 'hp_bar', 'xp_bar', 'progress', 'clock', 'stars', 'weight', 'orbs', 'slots', 'phase', 'gauge', 'charge'];
+        const progressionTypes = ['barrel', 'hp_bar', 'progress', 'clock', 'stars', 'weight', 'orbs', 'slots', 'phase', 'gauge', 'charge'];
         if (progressionTypes.includes(rule.renderType)) {
             const colonIdx = reconstructedContent.indexOf(':');
             const labelText = colonIdx !== -1 ? reconstructedContent.substring(0, colonIdx).trim() : 'Bar';
@@ -915,7 +885,7 @@ export function renderDayNightBadge(str) {
         // Multi-marker: render each segment and wrap it in a typed cell.
         // Stretchy render types (bars, progress) get flex:1 so they fill remaining
         // space; fixed types (pills, badges, text) take only their natural width.
-        const STRETCH_TYPES = new Set(['barrel', 'hp_bar', 'xp_bar', 'progress']);
+        const STRETCH_TYPES = new Set(['barrel', 'hp_bar', 'progress']);
         const tabStops = usesTabStops ? resolveMarkerTabStops(segments) : null;
 
         // Pre-compute each segment's reconstructed text so we can use sibling content
@@ -1426,6 +1396,8 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 }
 
     export function blockToItems(tag, content, renderTypeOverride = null) {
+        // Keep legacy tracker data in storage, but never render XP state.
+        if (String(tag || '').toUpperCase() === 'XP') return [];
         const rawLines = content.split('\n').map(l => l.trim()).filter(Boolean);
         const lines = rawLines.map(line => {
             // Strip leading bullet markers (-, *, +, •, en-dash, em-dash)
@@ -1448,13 +1420,12 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                 let lastEntityIdx = -1;
                 let currentEntity = '';
 
-                const MARKER_RX = /^\(\((PILLS|BAR|XPBAR|TEXT|BADGE|HIGHLIGHT|HPBAR|PLS|B|XB|HGT|HPB|BDG|HP)\)\)\s*(.*)/i;
+                const MARKER_RX = /^\(\((PILLS|BAR|TEXT|BADGE|HIGHLIGHT|HPBAR|PLS|B|HGT|HPB|BDG|HP)\)\)\s*(.*)/i;
                 const MARKER_TYPE_MAP = {
                     'PILLS': 'pills', 'PLS': 'pills',
                     'BAR': 'hp_bar', 'B': 'hp_bar',
                     'HPBAR': 'hp_bar', 'HPB': 'hp_bar',
                     'HP': 'hp_bar',
-                    'XPBAR': 'xp_bar', 'XB': 'xp_bar',
                     'TEXT': 'text',
                     'BADGE': 'badge', 'BDG': 'badge',
                     'HIGHLIGHT': 'highlight', 'HGT': 'highlight'
@@ -1686,65 +1657,13 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     return `<div class="rt-card-line">${linePrefix}${content}</div>`;
                 });
             }
-            case 'XP':
-                return lines.map((line, idx) => {
-                    const asMarker = tryRenderMarker(line, tag, '', idx);
-                    if (asMarker !== null) return asMarker;
-
-                    // New format: Total: 1,200 / 2,700 XP (Level 3)
-                    let m = line.match(/Total:\s*([\d,]+)\s*\/\s*([\d,]+)\s*XP\s*\(Level\s*(\d+)\)/i);
-                    if (m) {
-                        const [, curRaw, maxRaw, level] = m;
-                        const cur = Number(curRaw.replace(/,/g, ''));
-                        const max = Number(maxRaw.replace(/,/g, ''));
-                        const pct = Math.max(0, Math.min(100, (cur / max) * 100));
-                        const barId = 'XP::XP';
-                        const barBg = getBarBackground(barId, 'linear-gradient(90deg, #f39c12, #e67e22)', pct);
-
-                        const showAsPct = getBarShowAsPercentage(barId);
-                        const dispCur = showAsPct ? Math.round(pct) : curRaw;
-                        const dispMax = showAsPct ? 100 : maxRaw;
-
-                        return `<div class="rt-xp-row" data-xp-current="${cur}" data-xp-max="${max}" data-xp-level="${level}" data-xp-show-percentage="${showAsPct}">
-                            <div class="rt-xp-label"><span>Level ${level}</span><span>XP: <span class="rt-xp-current">${dispCur}</span> / <span class="rt-xp-max">${dispMax}</span></span></div>
-                            <div class="rt-xp-bar-wrap" title="Click to recolor XP" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}">
-                                <div class="rt-xp-bar" style="width:${pct.toFixed(1)}%; background:${barBg};"></div>
-                            </div>
-                        </div>`;
-                    }
-
-                    // Legacy format: XP: 1,200/2,700 or Level: 3 | XP: 1,200/2,700
-                    m = line.match(/(?:Level:\s*(\d+)\s*\|?\s*)?XP:\s*([\d,]+)\/([\d,]+)/i);
-                    if (m) {
-                        const [, level, curRaw, maxRaw] = m;
-                        const cur = Number(curRaw.replace(/,/g, ''));
-                        const max = Number(maxRaw.replace(/,/g, ''));
-                        const pct = Math.max(0, Math.min(100, (cur / max) * 100));
-                        const levelHtml = level ? `<span>Level ${level}</span>` : '';
-                        const barId = 'XP::XP';
-                        const barBg = getBarBackground(barId, 'linear-gradient(90deg, #f39c12, #e67e22)', pct);
-
-                        const showAsPct = getBarShowAsPercentage(barId);
-                        const dispCur = showAsPct ? Math.round(pct) : curRaw;
-                        const dispMax = showAsPct ? 100 : maxRaw;
-
-                        return `<div class="rt-xp-row" data-xp-current="${cur}" data-xp-max="${max}" data-xp-level="${level || ''}" data-xp-show-percentage="${showAsPct}">
-                            <div class="rt-xp-label">${levelHtml}<span>XP: <span class="rt-xp-current">${dispCur}</span> / <span class="rt-xp-max">${dispMax}</span></span></div>
-                            <div class="rt-xp-bar-wrap" title="Click to recolor XP" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}">
-                                <div class="rt-xp-bar" style="width:${pct.toFixed(1)}%; background:${barBg};"></div>
-                            </div>
-                        </div>`;
-                    }
-
-                    return `<div class="rt-card-item">${escapeHtmlWithColor(line)}</div>`;
-                });
             case 'SPELLS': {
-                // Lines: "Level N (avail/max): Spell1, Spell2" or "Cantrips: Spell1, Spell2"
+                // Lines: "Rank I (avail/max): Spell1, Spell2" or "Cantrips: Spell1, Spell2"
                 return lines.map((line, idx) => {
                     const asMarker = tryRenderMarker(line, tag, '', idx);
                     if (asMarker !== null) return asMarker;
 
-                    const m = line.match(/^(Level\s*\d+|Cantrips?)\s*(?:\((\d+)\/(\d+)[^)]*\))?\s*:\s*(.+)$/i);
+                    const m = line.match(/^(Rank\s*(?:[IVXLCDM]+|\d+)|Cantrips?)\s*(?:\((\d+)\/(\d+)[^)]*\))?\s*:\s*(.+)$/i);
                     if (!m) return `<div class="rt-card-item">${escapeHtmlWithColor(line)}</div>`;
                     const [, label, availStr, maxStr, spellList] = m;
                     const isCantrip = /cantrip/i.test(label);
@@ -1983,6 +1902,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
     }
 
     export function renderMemoAsCards(memo, filterTag, sectionPages, uiOptions = {}) {
+        memo = stripLegacyXpBlocks(memo);
         if (!memo || !memo.trim()) {
             const obSettings = getSettings();
             const useDdMmYy = !!obSettings.useDdMmYyFormat;
@@ -1990,10 +1910,6 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
             const onboardingGenre = obSettings.onboardingGenre || 'fantasy';
             const onboardingGearTier = obSettings.onboardingGearTier || 'auto';
             const gearTierOptions = renderStartingGearTierOptions(onboardingGearTier);
-            const onboardingLevelIsNone = obSettings.onboardingLevel === 'none';
-            const onboardingLevelNum = onboardingLevelIsNone
-                ? null
-                : (parseInt(String(obSettings.onboardingLevel || 1), 10) || 1);
             const startDateInputVal = obSettings.initialDate && obSettings.initialDate !== 'Day 1' ? obSettings.initialDate : '01/01/2026';
             const startTimeInputVal = obSettings.initialTime || '08:00 AM';
 
@@ -2019,7 +1935,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 
                 <div class="rt-quickstart" id="rt-quickstart">
                     <div class="rt-quickstart-title">⚡ Instant Action</div>
-                    <div class="rt-quickstart-sub">Choose a genre, optionally enter a name or Initial Setup, then begin. Leave the name blank to let the AI choose it. The extension uses your Narrator Configuration, starts at Level 1 with 0 XP unless Random Level is on, rolls a class and other unspecified details, and builds a Lorebook Agent Player Card plus a name-only ST persona. Uncheck Send Starter Message if you want to type your own first action instead of letting the AI open the campaign.</div>
+                    <div class="rt-quickstart-sub">Choose a genre, optionally enter a name or Initial Setup, then begin. Leave the name blank to let the AI choose it. The extension uses your Narrator Configuration, rolls a class and other unspecified details, and builds a Lorebook Agent Player Card plus a name-only ST persona. Uncheck Send Starter Message if you want to type your own first action instead of letting the AI open the campaign.</div>
                     <div class="rt-quickstart-genres" role="group" aria-label="Quick Start genre">
                         <button type="button" class="rt-quickstart-genre-btn" data-genre="fantasy" aria-pressed="false">⚔️ Fantasy</button>
                         <button type="button" class="rt-quickstart-genre-btn" data-genre="realistic" aria-pressed="false">🏙️ Modern</button>
@@ -2048,13 +1964,6 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             <input id="rt-quickstart-persona-words-custom" type="number" class="text_pole" value="${escapeHtml(String(obSettings.onboardingPersonaWordsCustom || ''))}" style="display:${obSettings.onboardingPersonaWords === 'other' ? 'block' : 'none'}" placeholder="50–5000" min="50" max="5000" aria-label="Custom Instant Action Player Card word count" />
                         </div>
                         <div class="rt-quickstart-flag">
-                            <label for="rt-quickstart-random-level" title="When this is off, Instant Action starts at Level 1 with 0 XP. When it is on, a level from 1–10 is rolled. Initial Setup still wins if it names a level.">
-                                <span>Random Level?</span>
-                                <input type="checkbox" id="rt-quickstart-random-level" ${obSettings.onboardingInstantActionRandomLevel === true ? 'checked' : ''} aria-label="Random Level" />
-                            </label>
-                            <span class="rt-cr-help-icon" title="When this is off, Instant Action starts at Level 1 with 0 XP. When it is on, a level from 1–10 is rolled. Initial Setup still wins if it names a level.">?</span>
-                        </div>
-                        <div class="rt-quickstart-flag">
                             <label for="rt-quickstart-send-starter" title="If this is checked, the AI automatically starts the campaign as soon as the rolled character is ready.">
                                 <span>Send Starter Message?</span>
                                 <input type="checkbox" id="rt-quickstart-send-starter" ${obSettings.onboardingSendStarterMessage !== false ? 'checked' : ''} aria-label="Send Starter Message" />
@@ -2076,17 +1985,6 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                 <!-- Configuration Grid -->
                 <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin: 4px 0; flex-shrink: 0;">
                     <div class="rt-onboarding-config-row">
-                        <div class="rt-onboarding-field">
-                            <span class="rt-onboarding-field-label">Level <span class="rt-cr-help-icon" title="Pick 'N/A' if your system doesn't use numeric character levels — Custom and Persona generation will not invent a level, XP, or D&D-style level indicator.">?</span></span>
-                            <select id="rt-starting-level" class="text_pole" style="width: auto; min-width: 60px; padding: 2px 4px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--black70a);">
-                                <option value="none"${onboardingLevelIsNone ? ' selected' : ''}>N/A — No Levels</option>
-                                ${[...Array(20).keys()].map(i => {
-                                    const lvl = i + 1;
-                                    const isSel = !onboardingLevelIsNone && lvl === onboardingLevelNum ? 'selected' : '';
-                                    return `<option value="${lvl}" ${isSel}>Level ${lvl}</option>`;
-                                }).join('')}
-                            </select>
-                        </div>
                         <div class="rt-onboarding-field">
                             <span class="rt-onboarding-field-label">Genre</span>
                             <select id="rt-onboarding-genre" class="text_pole" style="width: auto; min-width: 90px; padding: 2px 4px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--black70a);">
@@ -2270,17 +2168,10 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                                 <option value="horror">👻 Horror</option>
                             </select>
                         </div>
-                        <div class="rt-cr-field">
-                            <label class="rt-cr-label">Level <span class="rt-cr-help-icon" title="Pick 'N/A' if your system doesn't use numeric character levels — the AI will not invent a level, XP, or D&D-style level indicator.">?</span></label>
-                            <select id="rt-cr-level" class="text_pole rt-cr-input">
-                                <option value="none"${onboardingLevelIsNone ? ' selected' : ''}>N/A — No Levels (Custom System)</option>
-                                ${[...Array(20).keys()].map(i => { const l = i + 1; return `<option value="${l}"${!onboardingLevelIsNone && l === onboardingLevelNum ? ' selected' : ''}>Level ${l}</option>`; }).join('')}
-                            </select>
-                        </div>
                     </div>
                     <div class="rt-cr-row">
                         <div class="rt-cr-field">
-                            <label class="rt-cr-label">Gear Tier <span class="rt-cr-help-icon" title="How well-equipped the character should be — from mundane starter kit to heroic named gear. Auto scales with level. Pick 'None' to skip all gear guidance.">?</span></label>
+                            <label class="rt-cr-label">Gear Tier <span class="rt-cr-help-icon" title="How well-equipped the character should be — from mundane starter kit to heroic named gear. Auto follows the setting and character background. Pick 'None' to skip all gear guidance.">?</span></label>
                             <select id="rt-cr-gear-tier" class="text_pole rt-cr-input">
                                 ${gearTierOptions}
                             </select>
@@ -2567,6 +2458,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
         }
 
         const blocks = ensurePartyShellForBenchedRoster(parseMemoBlocks(memo));
+        delete blocks.XP;
         if (Object.keys(blocks).length === 0) {
             return `<div class="rt-empty">No structured blocks found.<br><small>Switch to Raw view to inspect the memo.</small></div>`;
         }
@@ -2577,9 +2469,6 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
             ...order.filter(k => blocks[k] !== undefined),
             ...stripBenchedPartyTag(Object.keys(blocks).filter(k => !order.includes(k))).sort()
         ];
-        if (s.xpBarAtBottom === true && !filterTag) {
-            sorted = sorted.filter(tag => tag !== 'XP');
-        }
 
         const collapsed = loadCollapsed();
         const detached = loadDetached();
@@ -2617,6 +2506,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
      * @returns {string}
      */
     function renderSectionCard(tag, blocks, collapsed, detached, sectionPages, filterTag, uiOptions = {}) {
+        if (String(tag || '').toUpperCase() === 'XP') return '';
         if (tag === 'QUESTS') return ''; // Quest log has dedicated high-fidelity renderer, skip standard card
         const content = blocks[tag];
         if (content === undefined && filterTag) {
@@ -2773,7 +2663,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 //
 // CHARACTER and COMBAT (while active) are pinned above the tab strip in full,
 // unmodified detail — reusing renderSectionCard directly. Every other block
-// (Inventory, Abilities, Spells, XP, Time, Quests, Party, custom modules)
+// (Inventory, Abilities, Spells, Time, Quests, Party, custom modules)
 // becomes a tab; only the active tab's card is rendered into the content pane.
 // The tab strip wraps to additional rows when space runs out.
 
@@ -2932,9 +2822,11 @@ function renderBenchedPartyPanel(benchedContent, isPanelCollapsed, expandedNames
  * @returns {string}
  */
 export function renderTabModeView(memo, sectionPages, questsCtx = null) {
+    memo = stripLegacyXpBlocks(memo);
     if (!memo || !memo.trim()) return renderMemoAsCards(memo, null, sectionPages);
 
     const blocks = ensurePartyShellForBenchedRoster(parseMemoBlocks(memo));
+    delete blocks.XP;
     if (Object.keys(blocks).length === 0) {
         return `<div class="rt-empty">No structured blocks found.<br><small>Switch to Raw view to inspect the memo.</small></div>`;
     }
@@ -2945,9 +2837,6 @@ export function renderTabModeView(memo, sectionPages, questsCtx = null) {
         ...order.filter(k => blocks[k] !== undefined),
         ...stripBenchedPartyTag(Object.keys(blocks).filter(k => !order.includes(k))).sort()
     ];
-    if (s.xpBarAtBottom === true) {
-        sorted = sorted.filter(tag => tag !== 'XP');
-    }
 
     const collapsed = loadCollapsed();
     const detached = loadDetached();
@@ -3032,21 +2921,6 @@ export function renderTabModeView(memo, sectionPages, questsCtx = null) {
         ${tabStripHtml}
         <div class="rt-tabmode-content" data-active-tag="${activeTag}">${contentHtml}</div>
     </div>`;
-}
-
-/**
- * Render only the memo-backed XP row for the persistent bottom-of-panel bar.
- * Keeping this sourced from blockToItems means it shares parsing, recoloring,
- * percentage labels, and animation data attributes with the normal XP module.
- * @param {string} memo
- * @returns {string}
- */
-export function renderBottomXpBar(memo) {
-    if (!memo || !memo.trim()) return '';
-    const blocks = parseMemoBlocks(memo);
-    if (blocks.XP === undefined) return '';
-    const xpRow = blockToItems('XP', blocks.XP).find(item => item.includes('class="rt-xp-row"'));
-    return xpRow ? `<div class="rt-bottom-xp-content">${xpRow}</div>` : '';
 }
 
 // ── Quest Log Renderer ─────────────────────────────────────────────────────

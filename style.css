@@ -3459,9 +3459,8 @@
     width: 100%;
 }
 
-/* hp/xp bar-wrap must fill its stretch cell */
-.rt-mmc-cell--stretch > .rt-entity-sub-line .rt-hp-bar-wrap,
-.rt-mmc-cell--stretch > .rt-entity-sub-line .rt-xp-bar-wrap {
+/* HP bar-wrap must fill its stretch cell */
+.rt-mmc-cell--stretch > .rt-entity-sub-line .rt-hp-bar-wrap {
     flex: 1;
     min-width: 40px;
 }
@@ -3798,177 +3797,6 @@
     border-radius: 12px;
     padding: 2px 9px;
     font-size: 0.92em;
-}
-
-/* XP Bar */
-.rt-xp-row {
-    position: relative;
-    padding: 4px 0;
-    transition: padding-top 0.18s ease;
-}
-
-.rt-xp-row.rt-xp-gain-active {
-    padding-top: 30px;
-}
-
-.rt-xp-label {
-    font-size: 0.88em;
-    color: inherit;
-    opacity: 0.7;
-    margin-bottom: 3px;
-    display: flex;
-    justify-content: space-between;
-}
-
-.rt-xp-bar-wrap {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.rt-xp-bar {
-    height: 100%;
-    background: linear-gradient(90deg, #0088ff, #00d4ff);
-    border-radius: 4px;
-    transition: width 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-    box-shadow: 0 0 10px rgba(0, 136, 255, 0.4);
-}
-
-.rt-xp-gain-floater {
-    position: absolute;
-    top: 4px;
-    left: 50%;
-    z-index: 2;
-    color: #29b6ff;
-    font-size: 1.08em;
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    transform: translateX(-50%);
-    text-shadow:
-        0 0 7px rgba(0, 180, 255, 0.65),
-        0 2px 4px rgba(0, 0, 0, 0.72);
-    pointer-events: none;
-}
-
-.rt-xp-gain-floater.rt-xp-gain-trickling {
-    animation: rt-xp-gain-dump var(--rt-xp-trickle-duration, 2640ms) linear forwards;
-}
-
-.rt-xp-gain-floater.rt-xp-gain-complete {
-    opacity: 0;
-}
-
-/* Persistent MMO-style XP bar pinned to the bottom of the tracker viewport. */
-.rt-bottom-xp-bar {
-    flex: 0 0 auto;
-    padding: 0 8px 5px;
-    background: rgba(0, 0, 0, 0.28);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    overflow: hidden;
-}
-
-.rt-bottom-xp-content .rt-xp-row {
-    min-height: 16px;
-    padding: 0;
-    display: grid;
-    align-items: center;
-    transition: padding-bottom 0.18s ease;
-}
-
-.rt-bottom-xp-content .rt-xp-row.rt-xp-gain-active {
-    padding-top: 0;
-    padding-bottom: 27px;
-}
-
-.rt-bottom-xp-content .rt-xp-label,
-.rt-bottom-xp-content .rt-xp-bar-wrap {
-    grid-area: 1 / 1;
-}
-
-.rt-bottom-xp-content .rt-xp-label {
-    z-index: 1;
-    margin: 0;
-    padding: 0 6px;
-    opacity: 0.95;
-    font-size: 0.76em;
-    line-height: 14px;
-    color: #fff;
-    text-shadow: 0 1px 3px #000, 0 0 3px #000;
-    pointer-events: none;
-}
-
-.rt-bottom-xp-content .rt-xp-bar-wrap {
-    height: 14px;
-    border-radius: 2px;
-    background: rgba(0, 0, 0, 0.58);
-    border-color: rgba(255, 255, 255, 0.22);
-}
-
-.rt-bottom-xp-content .rt-xp-bar {
-    border-radius: 1px;
-    box-shadow: inset 0 1px rgba(255, 255, 255, 0.24), 0 0 8px rgba(243, 156, 18, 0.38);
-}
-
-.rt-bottom-xp-content .rt-xp-gain-floater {
-    top: 20px;
-}
-
-/* The attached gain label sits below the bar and fades in place. Keep the
-   normal XP module's upward/float-away animation untouched. */
-.rt-bottom-xp-content .rt-xp-gain-floater.rt-xp-gain-trickling {
-    animation: rt-xp-bottom-gain-fade var(--rt-xp-trickle-duration, 2640ms) linear forwards;
-}
-
-@keyframes rt-xp-bottom-gain-fade {
-    0%, 72% {
-        opacity: 1;
-        transform: translateX(-50%);
-    }
-    100% {
-        opacity: 0;
-        transform: translateX(-50%);
-    }
-}
-
-/* The attached bar is display-only; it is not a recolor control. */
-#rt-bottom-xp-bar .rt-xp-bar-wrap[data-recolor-id],
-#rt-bottom-xp-bar .rt-xp-bar-wrap[data-recolor-id] .rt-xp-bar {
-    cursor: default;
-    pointer-events: none;
-    transform: none;
-}
-
-.rpg-tracker-panel.rt-tutorial-active .rt-bottom-xp-bar {
-    display: none !important;
-}
-
-@keyframes rt-xp-gain-dump {
-    0%, 72% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, 25px) scale(0.72);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .rt-xp-row,
-    .rt-xp-bar {
-        transition: none;
-    }
-
-    .rt-xp-gain-floater.rt-xp-gain-trickling {
-        animation-name: rt-xp-gain-fade;
-    }
-
-    @keyframes rt-xp-gain-fade {
-        0%, 72% { opacity: 1; }
-        100% { opacity: 0; }
-    }
 }
 
 /* Character KV pairs */
@@ -6887,20 +6715,17 @@ textarea.rt-cr-input {
 }
 
 /* ĂÂ˘Ă˘âŹÂĂ˘âÂŹĂÂ˘Ă˘âŹÂĂ˘âÂŹ Bar Recoloring ĂÂ˘Ă˘âŹÂĂ˘âÂŹĂÂ˘Ă˘âŹÂĂ˘âÂŹ */
-.rt-hp-bar-wrap[data-recolor-id], 
-.rt-xp-bar-wrap[data-recolor-id] {
+.rt-hp-bar-wrap[data-recolor-id] {
     position: relative;
     cursor: pointer;
     transition: filter 0.2s, transform 0.1s;
 }
 
-.rt-hp-bar-wrap[data-recolor-id]:hover,
-.rt-xp-bar-wrap[data-recolor-id]:hover {
+.rt-hp-bar-wrap[data-recolor-id]:hover {
     filter: brightness(1.2);
 }
 
-.rt-hp-bar-wrap[data-recolor-id]:active,
-.rt-xp-bar-wrap[data-recolor-id]:active {
+.rt-hp-bar-wrap[data-recolor-id]:active {
     transform: scale(0.98);
 }
 

@@ -189,9 +189,9 @@ function resolveEndOfOutputFooterSection(settings) {
 
     // Fallback: shipped default body with the same time/date transforms as transformBaseSectionContent.
     let inner = `ALWAYS end every output (even after tool chains) with:
-*(Status: [HP]) | (XP: [current]/[next level]) | (Location: [Main, Sub, Sub-sub, etc])*
-*Level [X] | [HH:MM AM/PM], Day [X]*
-Footer shows ONLY {{user}}'s HP/XP/level/location — never party/NPC status or names.
+*(Status: [current HP]/[maximum HP]) | (Location: [Main, Sub, Sub-sub, etc])*
+*[HH:MM AM/PM], Day [X]*
+Footer shows ONLY {{user}}'s current/max HP and location — never progression counters or party/NPC status or names.
 Location is coarse-to-fine and may be four or more tiers.
 
 - For an unmapped settlement building use Settlement, District, Building.
@@ -227,8 +227,13 @@ function buildEndOfOutputFooterReminder(settings) {
     const { enabled, inner } = resolveEndOfOutputFooterSection(settings);
     if (!enabled) return '';
 
-    const afterWith = extractFooterFormatAfterWith(inner);
+    let afterWith = extractFooterFormatAfterWith(inner);
     if (!afterWith) return '';
+    if (/\bXP\b|experience points|character\s+level|(?:^|\n)\s*\*?Level\s+\[X\]|(?:^|\n)\s*\*?Level\s+\d+\s*\|/i.test(afterWith)) {
+        // Saved footer overrides remain intact in settings; only the transient reminder
+        // is normalized so legacy character-advancement fields cannot be reintroduced.
+        afterWith = `*(Status: [current HP]/[maximum HP]) | (Location: [Main, Sub, Sub-sub, etc])*\n*[HH:MM AM/PM], Day [X]*`;
+    }
 
     const block = `<end_of_output_footer>
 ALWAYS end every output (even after tool chains) with:
@@ -574,7 +579,7 @@ export function registerMapArchitectTool() {
                     entrance: { type: 'string', description: 'Exact first area inside the new map: a gate, threshold, landing, door, square, or docks. Never translate it. Explicit offsite attachment leaves it UNREVEALED; active-location creation marks it VISITED.' },
                     kind: { type: 'string', enum: ['DUNGEON', 'SETTLEMENT', 'INTERIOR'], description: 'DUNGEON = high-risk room-scale site. INTERIOR = significant lower-risk multi-room site. SETTLEMENT = city/town/village district-scale graph.' },
                     scale: { type: 'string', enum: ['SMALL', 'MEDIUM', 'LARGE'], description: 'Geographic size, not danger. DUNGEON: SMALL 4-7 rooms, MEDIUM 7-12, LARGE 12-20. SETTLEMENT: SMALL 4-7 districts, MEDIUM 6-10, LARGE 8-14.' },
-                    threat: { type: 'string', enum: ['NONE', 'LOW', 'MODERATE', 'HIGH', 'DEADLY'], description: 'Site danger for occupancy and trap density. NONE forbids invented active danger. Independent of party level and scale.' },
+                    threat: { type: 'string', enum: ['NONE', 'LOW', 'MODERATE', 'HIGH', 'DEADLY'], description: 'Site danger for occupancy and trap density. NONE forbids invented active danger. Independent of party capability and geographic scale.' },
                     prompt: { type: 'string', description: 'Complete private map-generation guidance: purpose/history, topology, expected inhabitants or danger, tone, and anything that must not be contradicted. This can be detailed. Prompt facts do not by themselves grant player knowledge.' },
                     brief_description: { type: 'string', description: 'Brief current description of the site (1–2 sentences: what it is, notable features, typical atmosphere). Stored as the Location CORE General field, and as parent SUBDUNGEON/SUBINTERIOR gateway detail. Do not copy the full prompt.' },
                     attachTo: {

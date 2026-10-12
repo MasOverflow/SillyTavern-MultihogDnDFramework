@@ -244,7 +244,7 @@ export function handleCategorySettings(tag, targetEl) {
 }
 
 function buildExistingFieldsContextForAi(settings) {
-    const stock = ['COMBAT', 'CHARACTER', 'PARTY', 'INVENTORY', 'ABILITIES', 'SPELLS', 'XP', 'TIME'].map(t => `[${t}]`);
+    const stock = ['COMBAT', 'CHARACTER', 'PARTY', 'INVENTORY', 'ABILITIES', 'SPELLS', 'TIME'].map(t => `[${t}]`);
     const custom = (settings.customFields || []).map(f => `[${f.tag.toUpperCase()}] (${f.label})`);
     return `Currently configured modules/sections:\n- Built-in (Stock):\n  ${stock.join('\n  ')}\n- Custom Modules:\n  ${custom.length ? custom.join('\n  ') : '(none yet)'}`;
 }
@@ -342,7 +342,7 @@ function buildAiCustomModuleRules(existingTags, editingTag = null) {
 
     return `Instructions:
 - Output ONLY the JSON block. Do NOT include markdown fences, preambles, or postscripts.
-- The tag name must be short, alpha-numeric, uppercase, and UNIQUE. Avoid clashes with existing custom tags: ${list || '(none)'} or stock tags: [COMBAT], [CHARACTER], [PARTY], [INVENTORY], [ABILITIES], [SPELLS], [XP], [TIME].
+- The tag name must be short, alpha-numeric, uppercase, and UNIQUE. Avoid clashes with existing custom tags: ${list || '(none)'} or reserved framework tags: [COMBAT], [CHARACTER], [PARTY], [INVENTORY], [ABILITIES], [SPELLS], retired legacy [XP], [TIME].
 - Choose a beautiful, fitting single emoji icon.
 - Write precise, concise instructions for the tracking model. Explain what state properties/values to increment, decrement, or add.
 - Define a realistic, matching sample block template in the "template" key matching your instructions. Use inline rendering tags for visuals:
@@ -417,7 +417,6 @@ function buildRowTypeSelect(selectedVal) {
         ['Number Counter', 'number'],
         ['HP Bar (Crimson)', 'hpbar'],
         ['Blue Mana Bar', 'manabar'],
-        ['XP Progress Bar (Gold)', 'xpbar'],
         ['Status Pills (Comma-separated)', 'pills'],
         ['Coins Badge (Economy)', 'coins'],
         ['Quest Objectives (List)', 'objectives'],
@@ -496,7 +495,7 @@ export function openCustomFieldEditor(index) {
                             <i class="fa-solid fa-robot" style="opacity:0.7;"></i>
                             <b style="font-size:12px;">AI Instructions</b>
                         </div>
-                        <textarea id="rt_cfe_prompt" class="text_pole" rows="10" style="resize:vertical; width:100%;" placeholder="What should the AI track and in what format? Define the instructions. You can use the box below with the live preview (desktop only for now!) to create and paste a formatting instructions template here.&#10;&#10;Example: Track the Limit Break charge level of the protagonist. Increment Times Used on use; increase level by 1 on each use.&#10;&#10;Format:&#10;[LIMIT BREAK]&#10;((XPBAR)) Limit Break: 10/100 Level 4&#10;Times Used: 3&#10;[/LIMIT BREAK]"></textarea>
+                        <textarea id="rt_cfe_prompt" class="text_pole" rows="10" style="resize:vertical; width:100%;" placeholder="What should the AI track and in what format? Define the instructions. You can use the box below with the live preview (desktop only for now!) to create and paste a formatting instructions template here.&#10;&#10;Example: Track story-confirmed stages in repairing a damaged breastplate; do not add use counters.&#10;&#10;Format:&#10;[GEAR REPAIR]&#10;((PROGRESS)) Breastplate repair: 3/5 stages&#10;[/GEAR REPAIR]"></textarea>
                     </div>
 
                     <!-- Testing Sandbox -->
@@ -776,7 +775,7 @@ Status: Healthy`,
 Combat: BAB: +3 | Ranged (1 attack): +3 | Melee (1 attack): +5 | Base AC: 10 | Total AC: 16
 Gear: Mace (1d6+2 Bludgeoning) | Chain Shirt (+4 AC) | Shield (+2 AC)
 Abilities: Channel Divinity (1/1)
-Spells: Level 1 (3/4): Bless, Cure Wounds
+Spells: Rank I (3/4): Bless, Cure Wounds
 Status: Healthy`,
     INVENTORY: `Gear:
 - 🗡️ [Rare] [E] Flame Dagger +1 (1d6+2 Fire, +1 to hit) (~350 GP)
@@ -788,9 +787,8 @@ Other Items:
 Action Surge (Take one additional action, 1/1 per rest)
 Fighting Style: Archery (+2 to ranged attack rolls)`,
     SPELLS: `Cantrips: Light, Mage Hand
-Level 1 (3/4): Hunter's Mark, Longstrider, Detect Magic
-Level 2 (2/3): Pass Without Trace, Lesser Restoration`,
-    XP: 'Level: 4 | XP: 3,250/6,500',
+Rank I (3/4): Hunter's Mark, Longstrider, Detect Magic
+Rank II (2/3): Pass Without Trace, Lesser Restoration`,
     TIME: `Last Rest: 10:00 PM, Day 2
 Current Time: 08:35 AM, Day 3`,
     QUESTS: `QUEST: The Missing Sheep
@@ -1106,6 +1104,7 @@ function openShareModal(jsonString) {
 }
 
 export async function importModulesFromJson(jsonString) {
+    // XP stays reserved only to keep old memos/modules from colliding with new custom tags.
     const STOCK_TAGS = new Set(['COMBAT', 'CHARACTER', 'PARTY', 'INVENTORY', 'ABILITIES', 'SPELLS', 'XP', 'TIME']);
 
     let parsed;
@@ -1138,7 +1137,7 @@ export async function importModulesFromJson(jsonString) {
     const stockConflicts = incoming.filter(m => STOCK_TAGS.has(m.tag));
     if (stockConflicts.length > 0) {
         toastr['error'](
-            `Cannot import: [${stockConflicts.map(m => m.tag).join('], [')}] clash with built-in stock modules.`,
+            `Cannot import: [${stockConflicts.map(m => m.tag).join('], [')}] use reserved framework tags.`,
             'Multihog Framework'
         );
         return;
@@ -1159,7 +1158,7 @@ export async function importModulesFromJson(jsonString) {
         overwriteConflicts = (choice === 1);
     }
 
-    if (!s.blockOrder) s.blockOrder = ['COMBAT', 'CHARACTER', 'PARTY', 'INVENTORY', 'ABILITIES', 'SPELLS', 'XP', 'TIME'];
+    if (!s.blockOrder) s.blockOrder = ['COMBAT', 'CHARACTER', 'PARTY', 'INVENTORY', 'ABILITIES', 'SPELLS', 'TIME'];
 
     let importedCount = 0;
     for (const m of incoming) {

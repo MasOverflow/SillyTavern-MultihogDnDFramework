@@ -1,7 +1,7 @@
 import { getSettings, saveChatState, DEFAULT_PC_SECTIONS, getActiveChatId } from './state-manager.js';
 import { sendStateRequest } from './llm-client.js';
-import { buildOnboardingXpHint, buildOnboardingTimeHint, buildStartingGearHint, buildOnboardingActiveBlocks, buildCombatAndSkillScalingHint } from './constants.js';
-import { escapeHtml } from './memo-processor.js';
+import { buildOnboardingTimeHint, buildStartingGearHint, buildOnboardingActiveBlocks, buildCombatAndSkillScalingHint } from './constants.js';
+import { escapeHtml, memoForGmContext } from './memo-processor.js';
 import { getRequestHeaders } from '../../../../script.js';
 import { saveSettings, sendDirectPrompt, refreshAgentManifestNow, refreshRenderedView, syncTimeFormatSettingsUi } from './src/app/runtime-bridge.js';
 import { openPcSectionEditor } from './ui-editors.js';
@@ -10,7 +10,8 @@ import {
     resolveActivatedPersonaDescription,
 } from './src/state/player-identity.js';
 import { CHARACTER_CREATOR_NAME_ADDITIONS } from './src/state/character-names.js';
-import { buildInstantActionPromptSection, extractInstantActionLevel, normalizeInstantActionInstructions } from './src/state/instant-action-instructions.js';
+import { buildInstantActionPromptSection, normalizeInstantActionInstructions } from './src/state/instant-action-instructions.js';
+import { applyLevelFreeProgressionGuard, stripLegacyXpBlocks } from './src/state/level-free-progression.js';
 import { findCharacterCreatorPresetByName, upsertCharacterCreatorPreset } from './src/features/character-creator/presets.js';
 import { getCharacterCreationConnectionSettings } from './character-creation-connection.js';
 import { createChatCommitGuard } from './src/state/pass-affinity.js';
@@ -102,9 +103,8 @@ export function getArchetypesForGenre(genre) {
  * @param {string} [opts.speciesVal]
  * @param {string} [opts.ethnicityVal]
  * @param {string} [opts.genre] Empty string means "no genre — AI decides"; omit entirely to fall back to saved settings.
- * @param {number|null} opts.level Pass null for "no numeric levels" (custom system).
  * @param {string} opts.gearTier
- * @param {boolean} [opts.useCombatScalingGuide] Defaults to the saved setting; set false to omit the d20/BAB-style combat & skill scaling guide.
+ * @param {boolean} [opts.useCombatScalingGuide] Defaults to the saved setting; set false to omit grounded combat and skill guidance.
  * @param {string} opts.classRaw
  * @param {string} [opts.classOtherVal]
  * @param {string} [opts.traitsVal]
@@ -126,8 +126,6 @@ export function buildCharacterGenerationPrompt(opts) {
     // An explicit empty string means "None — AI decides" was chosen deliberately;
     // only fall back to the saved/default genre when the caller didn't pass one at all.
     const genre = opts.genre !== undefined ? opts.genre : (s.onboardingGenre || 'fantasy');
-    // opts.level === null means "no numeric levels" (custom system) was chosen.
-    // Instant Action Initial Setup can still override that below if it names a level.
     const gearTier = opts.gearTier || s.onboardingGearTier || 'auto';
     const useCombatScalingGuide = opts.useCombatScalingGuide !== undefined
         ? !!opts.useCombatScalingGuide
@@ -141,11 +139,6 @@ export function buildCharacterGenerationPrompt(opts) {
     const additionalVal = (opts.additionalVal || '').trim();
     const instantActionInstructions = normalizeInstantActionInstructions(opts.instantActionInstructions);
     const instantActionPromptSection = buildInstantActionPromptSection(instantActionInstructions);
-    const extractedLevel = extractInstantActionLevel(instantActionInstructions);
-    // An explicit Initial Setup level wins over the onboarding dropdown, including "no levels".
-    const noLevel = extractedLevel === null && opts.level === null;
-    const level = noLevel ? null : (extractedLevel ?? (opts.level || 1));
-    const instantActionLevelFallback = !!instantActionInstructions && extractedLevel === null && !noLevel;
 
     const isStoryFitting = classRaw === '__story__';
     const isOther = classRaw === '__other__';
@@ -188,33 +181,19 @@ export function buildCharacterGenerationPrompt(opts) {
         : 'Day 1';
 
     const mods = s.modules || {};
-    const hasXp = !!mods['xp'];
     const hasTime = !!mods['time'];
     const hasInventory = !!mods['inventory'];
     const hasSpells = !!mods['spells'];
     const hasAbilities = !!mods['abilities'];
 
-    const levelPrefix = noLevel
-        ? `LEVEL SYSTEM: This character creation system does not use numeric character levels. Do NOT invent, assign, or output a level number, an [XP] block, or any D&D-style level indicator — balance the character using the setting's own internal logic instead.`
-        : instantActionLevelFallback
-            ? (hasXp
-                ? `STARTING LEVEL: ${level} (fallback — If the Initial Setup specifies or clearly implies a different level, follow the Initial Setup instead. The character MUST be exactly that level.)`
-                : `STARTING LEVEL: ${level} (fallback — If the Initial Setup specifies or clearly implies a different level, follow the Initial Setup instead; scale/adjust HP, stats, saves, capabilities, and gear to that level, but do NOT output an [XP] block as it is disabled).`)
-            : hasXp
-                ? `STARTING LEVEL: ${level} (mandatory — the character MUST be exactly Level ${level}).`
-                : `STARTING LEVEL: ${level} (mandatory — the character MUST be exactly Level ${level}; scale/adjust HP, stats, saves, capabilities, and gear (everything a character of that level might have) to Level ${level} accordingly, but do NOT output an [XP] block as it is disabled).`;
-
-    const xpHint = (hasXp && !noLevel)
-        ? buildOnboardingXpHint(level, { allowInitialSetupOverride: instantActionLevelFallback })
-        : '';
     const TIME_FORMAT_HINT = hasTime ? buildOnboardingTimeHint(startDateVal, s.initialTime || '08:00 AM') : '';
-    const magicGearHint = buildStartingGearHint(noLevel ? 1 : level, genre, hasInventory, gearTier);
+    const magicGearHint = buildStartingGearHint(genre, hasInventory, gearTier);
 
     const activeBlocks = buildOnboardingActiveBlocks(s);
     const closingTagExamples = activeBlocks.map(b => `[/${b}]`).join(', ');
     const blockListStr = activeBlocks.join(', ');
     const CHARACTER_FORMAT_HINT = `\n\nCRITICAL TAG WRAPPING RULE: Every block you output MUST be enclosed in matching opening and closing tags (${closingTagExamples}).\nCRITICAL PARTY RULE: Do NOT output a [PARTY] block under any circumstances unless explicitly instructed.\nCRITICAL QUESTS RULE: Do NOT add quests or output a [QUESTS] block under any circumstances unless explicitly instructed.\nCRITICAL FORMAT RULE: Follow the exact field format, structure, and terminology defined in the module instructions provided in this system prompt for each block you output (${blockListStr}) — do not invent, omit, rename, or substitute fields, and do not fall back to a generic D&D template if the defined format differs from one. If a module (e.g. [ABILITIES], [INVENTORY], [SPELLS]) has no instructions in this system prompt, it is disabled — do NOT output that block or its concept (e.g. an "Abilities" list) anywhere in the response.`;
-    const spellsClause = hasSpells ? " Only include [SPELLS] if the class genuinely uses magic." : '';
+    const spellsClause = hasSpells ? " Only include [SPELLS] if the class genuinely uses magic; group slots by Rank I, Rank II, etc." : '';
 
     const SETTING_HINTS = {
         realistic: `\n\nCRITICAL REALISM RULE: This is a realistic/non-fantasy setting.${hasSpells ? ' Do NOT output a [SPELLS] block.' : ''} Avoid fantasy classes and races. Use realistic currency (e.g. $, USD, GBP). Gear and weapons must be realistic. Firearms on new gear/NPCs/loot: damage ~2–3× D&D/PF norms by common sense (type/caliber); attack bonuses unchanged (not mid-scene conversion).`,
@@ -226,7 +205,7 @@ export function buildCharacterGenerationPrompt(opts) {
     const combatSkillHint = useCombatScalingGuide ? buildCombatAndSkillScalingHint() : '';
     const f = (val, fallback) => val || fallback;
 
-    const prompt = `${levelPrefix}
+    const prompt = `Create a level-free character. Characters never have numeric levels and never gain XP.
 
 Design a complete player character that fits naturally into the current scenario, card, and recent chat history. Be authentic to the setting, era, and tone.${instantActionPromptSection}
 
@@ -239,7 +218,6 @@ Species:      ${f(speciesVal, '(your choice)')}
 Ethnicity:    ${f(ethnicityVal, '(your choice)')}
 ${classLine}
 Traits:       ${f(traitsVal, '(invent 2–3 distinctive traits)')}
-Level:        ${noLevel ? 'N/A — this system has no numeric levels' : (instantActionLevelFallback ? `${level} (fallback — if the Initial Setup specifies a different level, follow the Initial Setup instead)` : level)}
 ${hasAbilities ? `Abilities:    ${f(abilitiesVal, '(generate fitting, creative abilities)')}\n` : ''}Background:   ${f(backgroundVal, '(invent a brief origin)')}
 Appearance:   ${f(appearanceVal, '(invent a memorable appearance)')}
 ${additionalVal ? `Additional:   ${additionalVal}` : ''}
@@ -256,28 +234,21 @@ ${nameVal ? `• Use the provided name "${nameVal}" exactly; do not alter or rep
     ? `Treat the randomly chosen class "${classRaw}" as a fallback. If the Initial Setup specifies or clearly implies a different class, profession, or archetype, follow the Initial Setup instead.`
     : (isOther || isStoryFitting ? 'Invent the most fitting class for the setting and context.' : `Use the chosen class "${classRaw}" exactly as given — do not rename or substitute it.`)}
 • If the setting is non-fantasy and no class was specified, create a class that feels natural to the world — not a fantasy D&D class name.
-${noLevel
-    ? `• There is no numeric level for this character. All stats, gear, and saves must be internally consistent and appropriately balanced for the setting.${magicGearHint}`
-    : instantActionLevelFallback
-        ? `• Treat Level ${level} as a fallback. If the Initial Setup specifies or clearly implies a different level, follow the Initial Setup instead. All stats, gear, and saves${hasXp ? ', and XP' : ''} must be consistent with the chosen level.${magicGearHint}`
-        : `• All stats, gear, and saves${hasXp ? ', and XP' : ''} must be consistent with Level ${level}.${magicGearHint}`}
+• Ground the character's competence in background, training, natural attributes, and current equipment. Natural attributes and species-based maximum HP remain stable; equipment is the main source of combat progression.${magicGearHint}
 ${combatSkillHint}
-${CHARACTER_FORMAT_HINT}${xpHint}${TIME_FORMAT_HINT}${settingHint}`;
+${CHARACTER_FORMAT_HINT}${TIME_FORMAT_HINT}${settingHint}`;
 
-    return { prompt, extraHints, cardSnippet };
+    return { prompt: applyLevelFreeProgressionGuard(prompt), extraHints, cardSnippet };
 }
 
 /**
  * Generate a character sheet for Quick Start (no persona overlay).
- * @param {{ genre: string, className: string, level?: number|null, gearTier?: string, nameVal?: string, instantActionInstructions?: string }} opts
+ * @param {{ genre: string, className: string, gearTier?: string, nameVal?: string, instantActionInstructions?: string }} opts
  * @returns {Promise<{ charName: string }>}
  */
 export async function generateQuickStartCharacter(opts) {
     const s = getSettings();
     const genre = opts.genre || s.onboardingGenre || 'fantasy';
-    const level = opts.level !== undefined
-        ? opts.level
-        : (s.onboardingLevel === 'none' ? null : (parseInt(String(s.onboardingLevel || 1), 10) || 1));
     const gearTier = opts.gearTier || s.onboardingGearTier || 'auto';
     const className = opts.className;
     if (!className) throw new Error('Quick Start requires a class archetype.');
@@ -289,7 +260,6 @@ export async function generateQuickStartCharacter(opts) {
     const { prompt } = buildCharacterGenerationPrompt({
         nameVal: opts.nameVal,
         genre,
-        level,
         gearTier,
         classRaw: className,
         instantActionInstructions: opts.instantActionInstructions,
@@ -365,7 +335,6 @@ export function collectCharacterCreatorDraft(panel) {
         species: /** @type {HTMLInputElement} */ (panel.querySelector('#rt-cr-species'))?.value ?? '',
         ethnicity: /** @type {HTMLInputElement} */ (panel.querySelector('#rt-cr-ethnicity'))?.value ?? '',
         genre: /** @type {HTMLSelectElement} */ (panel.querySelector('#rt-cr-genre'))?.value ?? '',
-        level: /** @type {HTMLSelectElement} */ (panel.querySelector('#rt-cr-level'))?.value ?? '1',
         gearTier: /** @type {HTMLSelectElement} */ (panel.querySelector('#rt-cr-gear-tier'))?.value ?? 'auto',
         combatScalingGuide: !!/** @type {HTMLInputElement} */ (panel.querySelector('#rt-cr-combat-guide-cb'))?.checked,
         class: classSelect?.value ?? '__story__',
@@ -397,7 +366,6 @@ export function applyCharacterCreatorDraft(panel, draft, populateClasses) {
     setVal('#rt-cr-species', draft.species);
     setVal('#rt-cr-ethnicity', draft.ethnicity);
     setVal('#rt-cr-genre', draft.genre ?? '');
-    setVal('#rt-cr-level', String(draft.level ?? 1));
     setVal('#rt-cr-gear-tier', draft.gearTier ?? 'auto');
     const combatGuideCb = /** @type {HTMLInputElement|null} */ (panel.querySelector('#rt-cr-combat-guide-cb'));
     if (combatGuideCb) combatGuideCb.checked = draft.combatScalingGuide !== false;
@@ -455,7 +423,6 @@ export function resetCharacterCreatorFields(panel, populateClasses) {
     setVal('#rt-cr-species', '');
     setVal('#rt-cr-ethnicity', '');
     setVal('#rt-cr-genre', '');
-    setVal('#rt-cr-level', s.onboardingLevel === 'none' ? 'none' : String(s.onboardingLevel || 1));
     setVal('#rt-cr-gear-tier', s.onboardingGearTier || 'auto');
     const combatGuideCbReset = /** @type {HTMLInputElement|null} */ (panel.querySelector('#rt-cr-combat-guide-cb'));
     if (combatGuideCbReset) combatGuideCbReset.checked = s.onboardingUseCombatScalingGuide !== false;
@@ -526,7 +493,6 @@ export function showCharacterRollPanel(el) {
 
     const s = getSettings();
     const genreSelect = /** @type {HTMLSelectElement|null} */ (panel.querySelector('#rt-cr-genre'));
-    const levelSelect = /** @type {HTMLSelectElement|null} */ (panel.querySelector('#rt-cr-level'));
     const classSelect = /** @type {HTMLSelectElement|null} */ (panel.querySelector('#rt-cr-class'));
     const classOther  = /** @type {HTMLInputElement|null}  */ (panel.querySelector('#rt-cr-class-other'));
 
@@ -549,7 +515,6 @@ export function showCharacterRollPanel(el) {
     } else {
         // Default genre to '' (None — AI decides); do NOT carry over onboardingGenre here
         if (genreSelect) genreSelect.value = '';
-        if (levelSelect) levelSelect.value = s.onboardingLevel === 'none' ? 'none' : String(s.onboardingLevel || 1);
         const gearTierSelect = /** @type {HTMLSelectElement|null} */ (panel.querySelector('#rt-cr-gear-tier'));
         if (gearTierSelect) gearTierSelect.value = s.onboardingGearTier || 'auto';
         const combatGuideCbInit = /** @type {HTMLInputElement|null} */ (panel.querySelector('#rt-cr-combat-guide-cb'));
@@ -745,14 +710,10 @@ async function handleCharRollGenerate(el, panel) {
     // An empty string is a deliberate "None — AI decides" choice, not a missing value —
     // only fall back to the saved genre when the select itself couldn't be found.
     const genre          = genreEl ? genreEl.value : (s.onboardingGenre || 'fantasy');
-    const levelRawVal    = /** @type {HTMLSelectElement|null} */ (panel.querySelector('#rt-cr-level'))?.value
-        ?? (s.onboardingLevel === 'none' ? 'none' : String(s.onboardingLevel || 1));
-    const level          = levelRawVal === 'none' ? null : (parseInt(levelRawVal, 10) || 1);
     const gearTierEl     = /** @type {HTMLSelectElement|null} */ (panel.querySelector('#rt-cr-gear-tier'));
     const gearTier       = gearTierEl?.value || s.onboardingGearTier || 'auto';
     const combatGuideCb  = /** @type {HTMLInputElement|null} */ (panel.querySelector('#rt-cr-combat-guide-cb'));
     const useCombatScalingGuide = combatGuideCb ? !!combatGuideCb.checked : (s.onboardingUseCombatScalingGuide !== false);
-    s.onboardingLevel = levelRawVal === 'none' ? 'none' : level;
     s.onboardingGearTier = gearTier;
     if (combatGuideCb) s.onboardingUseCombatScalingGuide = useCombatScalingGuide;
     saveSettings();
@@ -775,7 +736,7 @@ async function handleCharRollGenerate(el, panel) {
 
     const { prompt, extraHints, cardSnippet } = buildCharacterGenerationPrompt({
         nameVal, genderVal, ageVal, orientationVal, speciesVal, ethnicityVal,
-        genre, level, gearTier, classRaw, classOtherVal,
+        genre, gearTier, classRaw, classOtherVal,
         traitsVal, abilitiesVal, backgroundVal, appearanceVal, additionalVal,
         useCombatScalingGuide,
     });
@@ -825,7 +786,7 @@ async function handleCharRollGenerate(el, panel) {
 
 export async function generatePersonaBio(charName, wordCount, extraHints = '', opts = {}) {
     const s = getSettings();
-    const rawMemo = s.currentMemo || '';
+    const rawMemo = stripLegacyXpBlocks(s.currentMemo || '');
     let cleanMemo = rawMemo.replace(/<\/?memo>/gi, '').replace(/<[^>]+>/g, ' ').trim();
     if (opts.preferCharacterBlock) {
         const charBlock = rawMemo.match(/\[CHARACTER\]([\s\S]*?)\[\/CHARACTER\]/i);
@@ -837,7 +798,7 @@ export async function generatePersonaBio(charName, wordCount, extraHints = '', o
     const coreSections = s.pcCoreSections && Array.isArray(s.pcCoreSections) && s.pcCoreSections.length > 0 ? s.pcCoreSections : DEFAULT_PC_SECTIONS;
     const sectionsTemplate = coreSections.map(sec => `${sec.name}:\n${sec.description}`).join('\n\n');
 
-    const systemPrompt = `You are a persona writer for a roleplay system. Based on the character state card provided, write a persona description for ${charName || 'this character'} in third person.${extraHints}
+    const systemPrompt = applyLevelFreeProgressionGuard(`You are a persona writer for a roleplay system. Based on the character state card provided, write a persona description for ${charName || 'this character'} in third person.${extraHints}
 
 You MUST use this exact section format — each section on its own line with the label followed by a colon:
 
@@ -853,7 +814,7 @@ Rules:
 - CRITICAL: You MUST faithfully and explicitly incorporate ALL provided traits, background hints, species, gender, and appearance hints from the character card and the PLAYER PREFERENCES. Do not ignore user-provided details.
 - CRITICAL: Do NOT describe worn clothing, armor, or gear in the Body section — that belongs exclusively in the Equipment section (if present).
 - CRITICAL: Never output template macro strings such as {{char}}, {{user}}, or any other {{...}} placeholders. Always replace them with the actual character's name or a fitting proper name.
-- Use recent story messages only for voice, relationships, and ongoing situation — do not invent stats that contradict the character card.`;
+- Use recent story messages only for voice, relationships, and ongoing situation — do not invent stats that contradict the character card.`);
 
     const { chat } = SillyTavern.getContext();
     let chatLog = '';
@@ -1300,7 +1261,7 @@ async function importPcFromCard(charCard, mode, el) {
     // Gather world context
     const contextLines = [];
     contextLines.push(`CHARACTER CARD:\nName: ${name}\nDescription: ${(charCard.description || '')}\nPersonality: ${(charCard.personality || '')}`);
-    if (s.currentMemo) contextLines.push(`CURRENT GAME STATE:\n${s.currentMemo}`);
+    if (s.currentMemo) contextLines.push(`CURRENT GAME STATE:\n${memoForGmContext(s.currentMemo)}`);
     if (ctx.chat && Array.isArray(ctx.chat)) {
         const msgs = ctx.chat.filter(m => !m.is_system && m.mes?.trim()).slice(-8);
         if (msgs.length > 0) contextLines.push(`RECENT CHAT:\n${msgs.map(m => `${m.name || (m.is_user ? 'User' : 'Character')}: ${m.mes}`).join('\n\n').substring(0, 3000)}`);
@@ -1318,10 +1279,7 @@ async function importPcFromCard(charCard, mode, el) {
     s.onboardingGearTier = gearTier;
     const importGenre = s.onboardingGenre || 'fantasy';
     const importHasInventory = !!s.modules?.inventory;
-    const importLevelForGear = s.onboardingLevel === 'none'
-        ? 1
-        : (parseInt(String(s.onboardingLevel || 1), 10) || 1);
-    const gearHint = buildStartingGearHint(importLevelForGear, importGenre, importHasInventory, gearTier);
+    const gearHint = buildStartingGearHint(importGenre, importHasInventory, gearTier);
 
     // --- Step 1: State Memo ---
     const memoPromptMinimal = `You are a state tracker assistant. Translate this character card into state tracker format for the player character.

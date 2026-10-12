@@ -4,7 +4,7 @@
 
 Started off as a humble "RPG State Tracker" but has since expanded into a more ambitious game engine, simulation system, and modular RPG platform where you can even make your own RPGs with their own systems and game logic — and all of this can be done through AI prompting via numerous integrated AI wizards/tools.
 
-By default, ships with a plug-and-play "hardcore" setup that can best be described as simulation autism. Actions have consequences, and there is no scaling. The dragon will kick you to the curb even if you're level 2. The core aim and philosophy is to deliver an immersive experience through robust simulation logic, using realistic time passage as the backbone that ties into numerous other systems, and this aforementioned "player-agnosticism/neutrality." Fundamentally it acts as a cohesive RPG framework as well as an anti-sycophancy system.
+By default, ships with a plug-and-play "hardcore" setup that can best be described as simulation autism. Actions have consequences, and there is no scaling. The dragon will kick you to the curb if the story, your preparation, and your equipment leave you outmatched. The core aim and philosophy is to deliver an immersive experience through robust simulation logic, using realistic time passage as the backbone that ties into numerous other systems, and this aforementioned "player-agnosticism/neutrality." Fundamentally it acts as a cohesive RPG framework as well as an anti-sycophancy system.
 
 I know it says "D&D Framework," but in addition to fantasy, the system works just as well for casual "slice of life" scenarios, modern settings, or anything else imaginable, so you're by no means limited to wizards and goblins. Everything is FULLY customizable and homebrew-friendly, complete with AI wizards, so next to no technical knowledge is required.
 
@@ -20,7 +20,7 @@ I know it says "D&D Framework," but in addition to fantasy, the system works jus
 
 ### The Core Components:
 
-1. 🖥️ **RPG State Tracker** -  Extracts and maintains HP, inventory, party, buffs, XP, spells, and more via a dedicated second-pass model. Injects a rolling State Memo back into each prompt to keep the AI (and you) on track.
+1. 🖥️ **RPG State Tracker** - Extracts and maintains HP, inventory, party, buffs, skills, spells, equipment condition, and more via a dedicated second-pass model. Combat progression centers on gear; skills and spells improve through story-supported learning and use.
 2. 🎲 **Hybrid RNG System** - A dual-engine approach to tabletop physics. 
    - RNG Queue: Pre-seeded deterministic dice injected into every turn. Cheaper than using tool calls and very smooth when a lot of rolls are used in sequence such as in combat.
    - Tool Call RNG: Enables a commitment logic where the AI must declare a DC before seeing the result, completely preventing sycophancy.

@@ -583,7 +583,7 @@ describe('Map Architect validation', () => {
         expect(injection).not.toContain('room-scale dungeon canon');
     });
 
-    it('tells the narrator that site threat governs occupancy, not party level', () => {
+    it('tells the narrator that site threat governs occupancy, not party capability', () => {
         const injection = buildDungeonRealityInjection({
             siteRoot: 'Abbey Undercroft',
             mapChunks: [JSON.stringify({
@@ -601,7 +601,7 @@ describe('Map Architect validation', () => {
             statusLog: [],
         }, 'Abbey Undercroft, Cellar Landing');
         expect(injection).toContain('Site threat is LOW');
-        expect(injection).toContain('not party level');
+        expect(injection).toContain('not party capability');
         expect(injection).toContain('Site threat: LOW');
     });
 
@@ -628,7 +628,7 @@ Two guards watch the lower door.
 
 The stair exhales cold air.
 
-*(Status: 10/10) | (XP: 0/300) | (Location: Crypt of Whispers, Hall of Echoes)*`;
+*(Status: 10/10) | (Location: Crypt of Whispers, Hall of Echoes)*`;
 
         expect(extractHiddenDungeonMapBlocks(text)).toHaveLength(1);
         expect(extractFooterLocation(text)).toBe('Crypt of Whispers, Hall of Echoes');

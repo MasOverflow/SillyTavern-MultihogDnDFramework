@@ -122,10 +122,6 @@ export function buildDefaultSettings() {
 
         dayNightCycleEnabled: false,
 
-        /** Pin XP above the State Tracker footer instead of rendering its module card. */
-
-        xpBarAtBottom: true,
-
         /** Optional State Tracker panel backdrop (data URL or https URL). */
 
         panelBgImage: '',
@@ -350,9 +346,6 @@ export function buildDefaultSettings() {
 
         onboardingGenre: "fantasy",
 
-        /** Starting level for character creation (1–20), or "none" for systems without numeric levels. */
-        onboardingLevel: 1,
-
         onboardingGearTier: "auto",
 
         /** When false, the Character Creator omits the classic d20/BAB-style combat
@@ -379,9 +372,6 @@ export function buildDefaultSettings() {
 
         /** Instant Action: when true, auto-send "Begin the adventure" after the character is ready. On by default; uncheck to type your own first action. */
         onboardingSendStarterMessage: true,
-
-        /** Instant Action: when true, roll a starting level from 1–10. Off by default so new characters start at Level 1 with 0 XP. */
-        onboardingInstantActionRandomLevel: false,
 
         /** Last Character Creator form values, saved when Generate Character is pressed. */
 
@@ -451,10 +441,10 @@ STATUS LABELING: In [CHARACTER], [PARTY], and [COMBAT] blocks, prefix positive s
 Equipment Incompatibility: When a character equips an item they cannot properly use (wrong proficiency, insufficient Strength, class restriction, etc.), record it as an event-anchored debuff whose parenthetical MUST name the causing item so removal can be inferred when that item loses its [E] tag. Format: \`(-) [Penalty Label] ([effect(s)], while [Item Name] is equipped)\`. Example: \`(-) Armor Non-Proficiency (Disadvantage on Str/Dex checks, arcane spell failure, while Iron Plate Mail is equipped)\`.
 </buff_debuff_logic>
 <progression_logic>
-Update abilities/attributes/HP/etc accordingly, such as an ability's 1d6 bonus increasing to 2d6, etc.
+Characters have no numeric level and gain no XP. Keep natural attributes and species-based maximum HP stable. Equipment quality, condition, enchantments, fit, and repair provide the main combat progression. Learn or improve skills and spells only when credible practice, instruction, discovery, or use in the story supports it; record changes in the existing skill or spell fields without use counters or automatic quest/encounter rewards. Use spell ranks, not spell levels. Ignore legacy XP and character-level state.
 </progression_logic>
 <custom_formatting>
-You may be asked to use Markers: ((PLS)), ((B)), ((XB)), ((BDG)), ((HGT)). These are for graphical rendering options; use them if instructed but only if instructed in a specific [MODULE].
+You may be asked to use Markers: ((PLS)), ((B)), ((PROGRESS)), ((BDG)), ((HGT)). These are for graphical rendering options; use them if instructed but only if instructed in a specific [MODULE].
 </custom_formatting>`,
 
         modules: {
@@ -474,8 +464,6 @@ You may be asked to use Markers: ((PLS)), ((B)), ((XB)), ((BDG)), ((HGT)). These
             spells: true,
 
             time: true,
-
-            xp: true,
 
             quests: true,
 
@@ -567,7 +555,7 @@ You may be asked to use Markers: ((PLS)), ((B)), ((XB)), ((BDG)), ((HGT)). These
 
         fullViewSections: [],
 
-        blockOrder: ['COMBAT', 'CHARACTER', 'PARTY', 'INVENTORY', 'ABILITIES', 'SPELLS', 'XP', 'TIME'],
+        blockOrder: ['COMBAT', 'CHARACTER', 'PARTY', 'INVENTORY', 'ABILITIES', 'SPELLS', 'TIME'],
 
         legacyDiceNaming: false,
 
@@ -1587,10 +1575,10 @@ STATUS LABELING: In [CHARACTER], [PARTY], and [COMBAT] blocks, prefix positive s
 Equipment Incompatibility: When a character equips an item they cannot properly use (wrong proficiency, insufficient Strength, class restriction, etc.), record it as an event-anchored debuff whose parenthetical MUST name the causing item so removal can be inferred when that item loses its [E] tag. Format: \`(-) [Penalty Label] ([effect(s)], while [Item Name] is equipped)\`. Example: \`(-) Armor Non-Proficiency (Disadvantage on Str/Dex checks, arcane spell failure, while Iron Plate Mail is equipped)\`.
 </buff_debuff_logic>
 <progression_logic>
-Update abilities/attributes/HP/etc accordingly, such as an ability's 1d6 bonus increasing to 2d6, etc.
+Characters have no numeric level and gain no XP. Keep natural attributes and species-based maximum HP stable. Equipment quality, condition, enchantments, fit, and repair provide the main combat progression. Learn or improve skills and spells only when credible practice, instruction, discovery, or use in the story supports it; record changes in the existing skill or spell fields without use counters or automatic quest/encounter rewards. Use spell ranks, not spell levels. Ignore legacy XP and character-level state.
 </progression_logic>
 <custom_formatting>
-You may be asked to use Markers: ((PLS)), ((B)), ((XB)), ((BDG)), ((HGT)). These are for graphical rendering options; use them if instructed but only if instructed in a specific [MODULE].
+You may be asked to use Markers: ((PLS)), ((B)), ((PROGRESS)), ((BDG)), ((HGT)). These are for graphical rendering options; use them if instructed but only if instructed in a specific [MODULE].
 </custom_formatting>`;
 
 

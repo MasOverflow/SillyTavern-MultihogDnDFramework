@@ -5,7 +5,7 @@ export const MAX_GAME_SYSTEM_WIZARD_LOOKBACK = 200;
 
 /** Stock tracker modules the Wizard can cite as formatting examples. */
 export const GAME_SYSTEM_WIZARD_STOCK_MODULE_TAGS = [
-    'CHARACTER', 'PARTY', 'COMBAT', 'INVENTORY', 'ABILITIES', 'SPELLS', 'XP', 'TIME', 'QUESTS',
+    'CHARACTER', 'PARTY', 'COMBAT', 'INVENTORY', 'ABILITIES', 'SPELLS', 'TIME', 'QUESTS',
 ];
 
 function escHtml(value) {

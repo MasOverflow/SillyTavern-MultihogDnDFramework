@@ -164,7 +164,7 @@ function threatBrief(threat, kind) {
             MODERATE: 'MODERATE = normal garrison or street crime.',
             HIGH: 'HIGH = occupation, curfews, armed factions in several districts.',
             DEADLY: 'DEADLY = active siege, massacre, or open war in the streets.',
-        }[threat] || 'Threat is site danger, not party level.';
+        }[threat] || 'Threat is site danger, not party capability.';
     }
     return {
         NONE: 'NONE = no invented active danger.',
@@ -172,7 +172,7 @@ function threatBrief(threat, kind) {
         MODERATE: 'MODERATE = moderate occupancy; hostiles here and there; some traps and hazards; safe pauses are not too unlikely.',
         HIGH: 'HIGH = frequent hostiles, packs or patrols, traps on multiple routes.',
         DEADLY: 'DEADLY = dense overlapping threats and layered traps; still traversable.',
-    }[threat] || 'Threat is site danger, not party level.';
+    }[threat] || 'Threat is site danger, not party capability.';
 }
 
 function normalizeInclude(value) {

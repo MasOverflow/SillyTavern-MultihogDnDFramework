@@ -11,10 +11,8 @@ import { pickGenreCharacterName } from './src/state/character-names.js';
 import {
     buildInstantActionOpeningMessage,
     buildInstantActionPromptSection,
-    extractInstantActionLevel,
     normalizeInstantActionInstructions,
     resolveInstantActionPlayerCardWords,
-    resolveInstantActionStartingLevel,
 } from './src/state/instant-action-instructions.js';
 import { createChatCommitGuard } from './src/state/pass-affinity.js';
 
@@ -135,28 +133,16 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
 
         const archetypes = getArchetypesForGenre(validGenre);
         const className = pickRandomArchetype(archetypes);
-        const noLevel = s.onboardingLevel === 'none';
-        const randomLevel = s.onboardingInstantActionRandomLevel === true;
-        const level = resolveInstantActionStartingLevel({
-            noLevel,
-            randomLevel,
-            random: secureRandom,
-        });
         const gearTier = s.onboardingGearTier || 'auto';
         const wordCount = resolveInstantActionPlayerCardWords(
             s.onboardingPersonaWords || '150',
             s.onboardingPersonaWordsCustom,
         );
         const genreLabel = GENRE_LABELS[validGenre] || validGenre;
-        const setupLevel = extractInstantActionLevel(instantActionInstructions);
-        const levelDetail = setupLevel != null
-            ? `Lv ${setupLevel} (Initial Setup)`
-            : (noLevel ? 'no levels' : `Lv ${level}`);
         const creationDetails = [
             genreLabel,
             instantActionInstructions ? 'custom setup' : className,
             nameVal || 'AI-chosen name',
-            levelDetail,
         ].join(' · ');
 
         setQuickStartStatus(root, `Creating character (${creationDetails})…`);
@@ -164,7 +150,6 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
             chatId: passChatId, canCommit: ownsChat,
             genre: validGenre,
             className,
-            level,
             gearTier,
             nameVal,
             instantActionInstructions,
@@ -241,7 +226,6 @@ export function bindQuickStartEvents(rootEl) {
     const wordCountSelect = /** @type {HTMLSelectElement|null} */ (section.querySelector('#rt-quickstart-persona-words'));
     const wordCountCustom = /** @type {HTMLInputElement|null} */ (section.querySelector('#rt-quickstart-persona-words-custom'));
     const sendStarterCheckbox = /** @type {HTMLInputElement|null} */ (section.querySelector('#rt-quickstart-send-starter'));
-    const randomLevelCheckbox = /** @type {HTMLInputElement|null} */ (section.querySelector('#rt-quickstart-random-level'));
     let selectedGenre = '';
     let selectedName = '';
 
@@ -251,7 +235,6 @@ export function bindQuickStartEvents(rootEl) {
         if (wordCountCustom) s.onboardingPersonaWordsCustom = wordCountCustom.value;
         if (wordCountCustom) wordCountCustom.style.display = wordCountSelect?.value === 'other' ? 'block' : 'none';
         if (sendStarterCheckbox) s.onboardingSendStarterMessage = !!sendStarterCheckbox.checked;
-        if (randomLevelCheckbox) s.onboardingInstantActionRandomLevel = !!randomLevelCheckbox.checked;
         saveSettings();
     };
 
@@ -293,7 +276,6 @@ export function bindQuickStartEvents(rootEl) {
     wordCountSelect?.addEventListener('change', persistQuickStartOptions);
     wordCountCustom?.addEventListener('input', persistQuickStartOptions);
     sendStarterCheckbox?.addEventListener('change', persistQuickStartOptions);
-    randomLevelCheckbox?.addEventListener('change', persistQuickStartOptions);
 
     startButton?.addEventListener('click', (e) => {
         e.preventDefault();

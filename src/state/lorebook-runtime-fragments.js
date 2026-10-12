@@ -51,10 +51,10 @@ export const DEFAULT_ROUTER_COMBAT_PROFILE_GUIDANCE_BASIC = `
 ## COMBAT PROFILE (mechanical stats provided this turn)
 - Canonical sources, in priority order:
   1. ## ACTIVE COMBAT STATE — for combatants listed in [COMBAT], copy that combatant's own block verbatim.
-  2. ## PARTY MECHANICAL STATE — for named [PARTY] members who ALREADY have a Combat Profile in ACTIVE MEMORY, patch lasting combat stats (max HP, BAB/APR, attack totals, AC, saves, attributes, HD, new class features/abilities) so they match the [PARTY] sheet. Typical trigger: PARTY LEVEL SYNC / level-up. Keep the existing Combat Profile block shape; do not replace it with a raw [PARTY] sheet. Do NOT create a Combat Profile from [PARTY] if none exists. Do NOT rewrite a profile solely because current HP, temp HP, status, or spell-slot ticks changed.
+  2. ## PARTY MECHANICAL STATE — for named [PARTY] members who ALREADY have a Combat Profile in ACTIVE MEMORY, patch lasting combat stats only when the [PARTY] sheet reflects a credible change such as equipment, training, injury, or transformation. Keep natural attributes and species-based maximum HP stable. Keep the existing Combat Profile block shape; do not replace it with a raw [PARTY] sheet. Do NOT create a Combat Profile from [PARTY] if none exists. Do NOT rewrite a profile solely because current HP, temp HP, status, or spell-slot ticks changed.
 - **Existing NPCs** (in ACTIVE MEMORY or ARCHIVE): output \`[[UPDATE_CORE: NPC Name | Combat Profile | updated stats]]\` — NOT a full \`[[NPC:...]]\` re-record.
 - **Brand-new combatants** with no existing entry: include \`Combat Profile:\` inside \`[CORE]\` in a new \`[[NPC:...]]\` record, and only from ACTIVE COMBAT STATE — never from [PARTY].
-- Never invent numbers from GM prose. PARTY LEVEL SYNC in the narrative is a cue to read ## PARTY MECHANICAL STATE.
+- Never invent numbers from GM prose. A credible lasting change in the narrative is a cue to read ## PARTY MECHANICAL STATE.
 ${COMBAT_SCOPE_RULE}
 - Example: \`[[UPDATE_CORE: Marcus Thorne | Combat Profile | Marcus Thorne: 12/12 HP\\nAtt/def: Longsword (1 attack, +5 / 1d8+2 Slashing) | Chainmail (AC: 15)\\nSaves: Fort +4, Ref +2, Will +1\\nAbilities: None declared\\nStatus: Healthy]]\``;
 
@@ -62,10 +62,10 @@ export const DEFAULT_ROUTER_COMBAT_PROFILE_GUIDANCE_AGENT = `
 ## COMBAT PROFILE (mechanical stats provided this turn)
 - Canonical sources, in priority order:
   1. ## ACTIVE COMBAT STATE — for combatants listed in [COMBAT], copy that combatant's own block verbatim.
-  2. ## PARTY MECHANICAL STATE — for named [PARTY] members who ALREADY have a Combat Profile in ACTIVE MEMORY, patch lasting combat stats (max HP, BAB/APR, attack totals, AC, saves, attributes, HD, new class features/abilities) so they match the [PARTY] sheet. Typical trigger: PARTY LEVEL SYNC / level-up. Keep the existing Combat Profile block shape; do not replace it with a raw [PARTY] sheet. Do NOT create a Combat Profile from [PARTY] if none exists. Do NOT rewrite a profile solely because current HP, temp HP, status, or spell-slot ticks changed.
+  2. ## PARTY MECHANICAL STATE — for named [PARTY] members who ALREADY have a Combat Profile in ACTIVE MEMORY, patch lasting combat stats only when the [PARTY] sheet reflects a credible change such as equipment, training, injury, or transformation. Keep natural attributes and species-based maximum HP stable. Keep the existing Combat Profile block shape; do not replace it with a raw [PARTY] sheet. Do NOT create a Combat Profile from [PARTY] if none exists. Do NOT rewrite a profile solely because current HP, temp HP, status, or spell-slot ticks changed.
 - **Existing NPCs** (listed in ACTIVE MEMORY with an ID): use \`commit({"core": [{"id": "Book::UID or NPC Name", "field": "Combat Profile", "content": "updated stats"}]})\`. Do NOT re-record the full NPC via \`record\` or embed a new \`[CORE]\` block in \`update\`.
 - **Brand-new combatants** with no lorebook entry yet: include \`Combat Profile:\` inside \`[CORE]\` in a \`record\` item, and only from ACTIVE COMBAT STATE — never from [PARTY].
-- Never invent numbers from GM prose. PARTY LEVEL SYNC in the narrative is a cue to read ## PARTY MECHANICAL STATE.
+- Never invent numbers from GM prose. A credible lasting change in the narrative is a cue to read ## PARTY MECHANICAL STATE.
 ${COMBAT_SCOPE_RULE}
 - Example (updating only "Schwarzenegev", ignoring every other combatant listed alongside it): \`commit({"core": [{"id": "Schwarzenegev", "field": "Combat Profile", "content": "Schwarzenegev: 40/45 HP\\nAtt/def: Argument Ender (1 attack, +8 / 2d10+4 Piercing) | Armor (AC: 16)\\nSaves: Fort unknown, Ref unknown, Will unknown\\nAbilities: None declared\\nOther: Temporary allied combatant\\nStatus: (-) Wounded (until healed), Active (this combat)"}]})\``;
 

@@ -18,7 +18,7 @@ describe('panel markup', () => {
         expect(markup).toContain('Disable Multihog Framework');
         expect(markup).not.toContain('id="rt-agent-router-enable-btn"');
         expect(markup).toContain('id="rpg-tracker-memo"');
-        expect(markup).toContain('id="rt-bottom-xp-bar"');
+        expect(markup).not.toContain('id="rt-bottom-xp-bar"');
         expect(markup).toContain('Saved memo');
         expect(markup).toContain('id="rpg-tracker-agent"');
         expect(markup).toContain('rt-panel-collapsed');

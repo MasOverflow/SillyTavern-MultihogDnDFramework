@@ -23,6 +23,7 @@ import {
 } from './src/state/lorebook-history.js';
 import { buildKeyringText, grepLoreInBooks, isSkeletonBookName, resolveBooksToScan } from './src/state/lorebook-keyring.js';
 import { findMostRecentNarratorMessage, stripCyoaChoiceBlocks } from './src/state/present-now.js';
+import { applyLevelFreeProgressionGuard } from './src/state/level-free-progression.js';
 import {
     applyDungeonMapTransaction,
     attachDungeonMapToLocationEntry,
@@ -1721,7 +1722,7 @@ export async function runRouterPass(narrativeOutput, manualPrompt = null, custom
             ? `## ACTIVE COMBAT STATE (canonical mechanical stats — use this as the source for NPC Combat Profiles, not the GM prose)\n${activeCombatBlock}\n\n`
             : '';
         const partyMechanicalSection = partyMechanicalBlock
-            ? `## PARTY MECHANICAL STATE (canonical companion combat stats — patch existing NPC Combat Profiles after level-up / lasting progression; do not invent new Combat Profiles from this block)\n${partyMechanicalBlock}\n\n`
+            ? `## PARTY MECHANICAL STATE (canonical companion combat stats — patch existing NPC Combat Profiles only after credible lasting changes such as training, equipment, injury, or transformation; do not invent new Combat Profiles from this block)\n${partyMechanicalBlock}\n\n`
             : '';
         const combatProfileGuidanceBasic = resolveCombatProfileGuidance(settings, !!(activeCombatBlock || partyMechanicalBlock), 'basic');
         const combatProfileGuidanceAgent = resolveCombatProfileGuidance(settings, !!(activeCombatBlock || partyMechanicalBlock), 'agent');
@@ -1764,9 +1765,9 @@ export async function runRouterPass(narrativeOutput, manualPrompt = null, custom
             : `## AVAILABLE RECORD CATEGORIES (AUTHORITATIVE FOR THIS PASS)\nNo record categories are enabled. Do not create new records this pass.`;
 
         const sysTemplate = adjustPromptTimestamps(settings.routerSystemPromptTemplate || 'You are the Lorebook Agent. Maintain narrative consistency and manage lorebooks.', settings);
-        const basePrompt = sysTemplate
+        const basePrompt = applyLevelFreeProgressionGuard(sysTemplate
             .replace(/\{\{campaignRoot\}\}/g, prefix || 'World Chronicle')
-            .replace(/\{\{user\}\}/g, ctx.name1 || 'User');
+            .replace(/\{\{user\}\}/g, ctx.name1 || 'User'));
 
         // ── Cleanup Mode ─────────────────────────────────────────────────────
         // Triggered by the UI broom button via runRouterPass(null, '__CLEANUP__', null, true).
@@ -1912,7 +1913,7 @@ For each flagged entry:
             // Profile/default connections don't support native tool schemas; use text-format actions.
             const usesNativeToolsForCleanup = ['openai', 'ollama'].includes(routerSettings.connectionSource);
 
-            const cleanupSystemPrompt = settings.routerBasicMode
+            const cleanupSystemPrompt = applyLevelFreeProgressionGuard(settings.routerBasicMode
                 ? basicInstructionPrompt
                 : (usesNativeToolsForCleanup
                     // Native tool-call path — model receives JSON schemas via the API
@@ -1934,7 +1935,7 @@ commit consolidate items: {"targets": ["Book::UID1"], "survivor": "Book::UID2", 
 ## EXAMPLE
 Thought: The entry is verbose. I will rewrite it with the key facts.
 Action: commit({"rewrite": [{"id": "Eldoria_Events::3", "content": "Compressed version of the entry."}]})`
-                );
+                ));
 
             if (settings.routerBasicMode) {
                 const cleanupUserPrompt = cleanupContext;
@@ -2238,7 +2239,9 @@ Action: commit({"rewrite": [{"id": "Eldoria_Events::3", "content": "Compressed v
                 settings
             );
 
-            const finalBasicSystemPrompt = `${stripStaticDungeonAgentGuidance(basicSystemPrompt)}${formatMappedSiteAgentNote(activeDungeonContext)}`;
+            const finalBasicSystemPrompt = applyLevelFreeProgressionGuard(
+                `${stripStaticDungeonAgentGuidance(basicSystemPrompt)}${formatMappedSiteAgentNote(activeDungeonContext)}`,
+            );
 
             const questMatchB = settings.currentMemo?.match(/\[QUESTS\]([\s\S]*?)\[\/QUESTS\]/i);
             const questBlockB = questMatchB ? `[QUESTS]${questMatchB[1].trim()}[/QUESTS]` : 'None';

@@ -4,13 +4,9 @@ import { buildDefaultSettings } from '../src/state/defaults.js';
 import {
     buildInstantActionOpeningMessage,
     buildInstantActionPromptSection,
-    extractInstantActionLevel,
-    getInstantActionLevelRange,
     MAX_INSTANT_ACTION_INSTRUCTION_LENGTH,
     normalizeInstantActionInstructions,
     resolveInstantActionPlayerCardWords,
-    resolveInstantActionStartingLevel,
-    rollInstantActionLevel,
 } from '../src/state/instant-action-instructions.js';
 
 const quickStartSource = readFileSync(new URL('../quickstart.js', import.meta.url), 'utf8');
@@ -18,21 +14,21 @@ const creatorSource = readFileSync(new URL('../character-creator.js', import.met
 const rendererSource = readFileSync(new URL('../renderer.js', import.meta.url), 'utf8');
 
 describe('Instant Action instructions', () => {
-    it('preserves the original opening message when the optional box is empty', () => {
+    it('preserves the original opening message when optional guidance is empty', () => {
         expect(buildInstantActionOpeningMessage('   ')).toBe('Begin the adventure');
     });
 
-    it('sends the same guidance with the opening adventure message', () => {
+    it('sends the same one-time guidance with the opening adventure message', () => {
         expect(buildInstantActionOpeningMessage('A storm-battered frontier town')).toBe(
             'Begin the adventure.\n\nInitial Setup:\nA storm-battered frontier town',
         );
     });
 
-    it('marks guidance as higher priority than randomized character defaults', () => {
-        const section = buildInstantActionPromptSection('A 28-year-old female ranger with a crossbow');
-        expect(section).toContain('INITIAL SETUP:');
-        expect(section).toContain('A 28-year-old female ranger with a crossbow');
-        expect(section).toContain('these instructions win');
+    it('keeps setup details while interpreting numeric level or XP requests narratively', () => {
+        const section = buildInstantActionPromptSection('A level 7 ranger with 4,000 XP and a fine bow');
+        expect(section).toContain('A level 7 ranger with 4,000 XP and a fine bow');
+        expect(section).toContain('translate that intent into narrative experience, training, or equipment quality');
+        expect(section).toContain('without assigning a number or tracking XP');
     });
 
     it('trims and bounds one-time guidance', () => {
@@ -54,38 +50,15 @@ describe('Instant Action instructions', () => {
         expect(quickStartSource).toMatch(/generatePersonaBio\([\s\S]*?buildInstantActionPromptSection\(instantActionInstructions\)/);
         expect(quickStartSource).toContain('buildInstantActionOpeningMessage(instantActionInstructions)');
         expect(creatorSource).toContain('instantActionInstructions: opts.instantActionInstructions');
-        expect(creatorSource).toContain('If the Initial Setup specifies');
-        expect(creatorSource).toContain('extractInstantActionLevel(instantActionInstructions)');
+        expect(creatorSource).toContain('Create a level-free character');
     });
 
-    it('lets Initial Setup override the Instant Action starting level', () => {
-        expect(extractInstantActionLevel('A level 7 ranger.')).toBe(7);
-        expect(extractInstantActionLevel('lvl 3 wizard')).toBe(3);
-        expect(extractInstantActionLevel('a 7th-level ranger with a crossbow')).toBe(7);
-        expect(extractInstantActionLevel('A 28-year-old female ranger with a crossbow')).toBeNull();
-        expect(extractInstantActionLevel('')).toBeNull();
-        expect(creatorSource).toContain('extractedLevel ?? (opts.level || 1)');
-        expect(creatorSource).toContain('STARTING LEVEL: ${level} (mandatory — the character MUST be exactly Level ${level}).');
-    });
-
-    it('starts Instant Action at Level 1 unless Random Level is enabled', () => {
-        const { min, max } = getInstantActionLevelRange();
-        expect(min).toBe(1);
-        expect(max).toBe(10);
-        expect(resolveInstantActionStartingLevel()).toBe(1);
-        expect(resolveInstantActionStartingLevel({ randomLevel: false })).toBe(1);
-        expect(resolveInstantActionStartingLevel({ randomLevel: true, random: () => 0 })).toBe(1);
-        expect(resolveInstantActionStartingLevel({ randomLevel: true, random: () => 0.999 })).toBe(10);
-        expect(resolveInstantActionStartingLevel({ noLevel: true, randomLevel: true })).toBeNull();
-        expect(rollInstantActionLevel(() => 0.5)).toBe(6);
-        expect(buildDefaultSettings().onboardingInstantActionRandomLevel).toBe(false);
-        expect(quickStartSource).toContain('resolveInstantActionStartingLevel(');
-        expect(quickStartSource).toContain('onboardingInstantActionRandomLevel === true');
-        expect(quickStartSource).not.toMatch(/onboardingLevel \|\| 1\)/);
-        expect(rendererSource).toContain('id="rt-quickstart-random-level"');
-        expect(rendererSource).toContain('Random Level?');
-        expect(rendererSource).toContain("obSettings.onboardingInstantActionRandomLevel === true ? 'checked' : ''");
-        expect(quickStartSource).toMatch(/randomLevelCheckbox\?\.addEventListener\('change', persistQuickStartOptions\)/);
+    it('removes numeric-level and random-level creator controls and saved defaults', () => {
+        const defaults = buildDefaultSettings();
+        expect(defaults).not.toHaveProperty('onboardingLevel');
+        expect(defaults).not.toHaveProperty('onboardingInstantActionRandomLevel');
+        expect(quickStartSource).not.toMatch(/randomLevel|onboardingInstantActionRandomLevel|onboardingLevel/);
+        expect(rendererSource).not.toMatch(/rt-quickstart-random-level|Random Level\?/);
     });
 
     it('exposes a selectable Player Card word count in Instant Action', () => {
@@ -94,7 +67,7 @@ describe('Instant Action instructions', () => {
         expect(quickStartSource).toContain('resolveInstantActionPlayerCardWords(');
     });
 
-    it('makes the Instant Action starter message optional and on by default', () => {
+    it('keeps the Instant Action starter message optional and on by default', () => {
         expect(buildDefaultSettings().onboardingSendStarterMessage).toBe(true);
         expect(rendererSource).toContain('id="rt-quickstart-send-starter"');
         expect(rendererSource).toContain('Send Starter Message?');

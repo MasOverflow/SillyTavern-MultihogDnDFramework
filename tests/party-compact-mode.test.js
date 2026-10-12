@@ -20,7 +20,7 @@ Saves: Fort +4, Ref +2, Will +1
 const CASTER_PARTY_MEMO = `[PARTY]
 Perrin (Mage Apprentice): 10/13 HP
 Spells: Cantrips: Fire Bolt, Light
-Spells: Level 1 (3/3): Magic Missile, Shield, Burning Hands
+Spells: Rank I (3/3): Magic Missile, Shield, Burning Hands
 Corwin Vale (Ex-Stormwind Footman): 25/28 HP
 [/PARTY]`;
 

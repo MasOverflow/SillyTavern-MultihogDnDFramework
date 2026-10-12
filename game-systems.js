@@ -45,6 +45,7 @@ import {
     buildGameSystemWizardPreviewMemo,
     extractGameSystemWizardTemplate,
 } from './src/features/game-system-wizard-preview.js';
+import { LEVEL_FREE_PROGRESSION_INSTRUCTIONS } from './src/state/level-free-progression.js';
 
 export { isBaseSectionEnabled, isEffectiveSectionEnabled } from './src/state/section-enabled.js';
 
@@ -170,7 +171,8 @@ function readWizardSystemPromptFromUi(settings, textareaId) {
 function composeWizardArchitectPrompt(basePrompt, effectOwner = 'tracker') {
     const base = (basePrompt || '').trim();
     const example = buildWizardOutputExample(effectOwner);
-    return example ? `${base}\n\n${example}` : base;
+    const prompt = example ? `${base}\n\n${example}` : base;
+    return `${prompt}${LEVEL_FREE_PROGRESSION_INSTRUCTIONS}`.trim();
 }
 
 /** Connection overlay for Game Systems wizard / AI builder LLM calls (separate from main tracker). */
@@ -2101,7 +2103,7 @@ const WIZARD_EXAMPLE_SYSTEMS = [
     },
     {
         label: '🔨 Construction',
-        text: 'A construction skill: track proficiency and project progress for building/repairing structures — XP from practice, material costs, build stages, and quality of finished work.',
+        text: 'A construction skill: improve proficiency through credible practice and instruction; track project material costs, completed build stages, and quality of finished work without XP or use counters.',
     },
     {
         label: '☢ Radiation',

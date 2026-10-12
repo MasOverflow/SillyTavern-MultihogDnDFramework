@@ -39,8 +39,8 @@ describe('Combat Profile router guidance scopes to a single combatant', () => {
         }, true, 'basic')).toBe('CUSTOM BASIC COMBAT');
     });
 
-    it('tells the agent to patch existing party Combat Profiles after level-up without inventing new ones', () => {
-        expect(DEFAULT_ROUTER_COMBAT_PROFILE_GUIDANCE_BASIC).toContain('PARTY LEVEL SYNC');
+    it('tells the agent to patch existing party Combat Profiles after credible lasting changes', () => {
+        expect(DEFAULT_ROUTER_COMBAT_PROFILE_GUIDANCE_BASIC).toContain('credible change such as equipment, training, injury, or transformation');
         expect(DEFAULT_ROUTER_COMBAT_PROFILE_GUIDANCE_AGENT).toContain('Do NOT create a Combat Profile from [PARTY] if none exists');
         expect(routerSource).toContain('## PARTY MECHANICAL STATE');
         expect(routerSource).toContain('extractPartyBlock(settings.currentMemo)');

@@ -258,7 +258,7 @@ RULES:
 - Preserve their name exactly: ${name}
 - Use the identity card below as the source of truth for who they are (species, appearance, personality, background, habits, strengths, flaws).
 - Generate a complete mechanical [PARTY] member sheet that matches the current campaign's [PARTY] format and the module instructions.
-- Fit stats, class, gear, and abilities to the current story and existing party power level.
+- Fit their natural stats to species and established identity, and their training, gear, and abilities to the character's background and the current story. Do not scale them to the party.
 - Output the entire updated [PARTY] block (all existing members plus this new one).
 - Do not rewrite [CHARACTER].
 - Do not add quests or output [QUESTS] unless they are already changing for another reason.
@@ -293,7 +293,7 @@ RULES:
 - Preserve their name exactly: ${name}
 - Use the identity card below as the source of truth for who they are (species, appearance, personality, background, habits, strengths, flaws).
 - Output a complete [CHARACTER] block that matches the current campaign's [CHARACTER] format and the module instructions.
-- Fit stats, class, gear, and abilities to the current story power level.
+- Fit natural stats to species and established identity, and training, gear, skills, and spells to the character's background and setting. Do not assign a numeric level or scale them to the campaign.
 - Also output [INVENTORY], [ABILITIES], and/or [SPELLS] when those modules are enabled and the identity implies them; omit modules that do not apply.
 - Do not output [PARTY] unless it must change for another reason.
 - Do not add quests or output [QUESTS] unless they are already changing for another reason.

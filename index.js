@@ -1,4 +1,4 @@
-import { EXAMPLES, COLOR_EXAMPLES, DEFAULT_STOCK_PROMPTS, RT_PROMPTS, BLOCK_ICONS, BLOCK_ORDER, PAGE_SIZE, NO_PAGINATE, buildOnboardingXpHint, buildOnboardingTimeHint, buildStartingGearHint, buildOnboardingActiveBlocks, buildCombatAndSkillScalingHint, resolveTimePromptKey, resolveTimePromptDisplayTag, buildCyoaPrompt, DEFAULT_CYOA_SLOTS, refreshCyoaConfigToShipped, formatTimeOfDay } from './constants.js';
+import { EXAMPLES, COLOR_EXAMPLES, DEFAULT_STOCK_PROMPTS, RT_PROMPTS, BLOCK_ICONS, BLOCK_ORDER, PAGE_SIZE, NO_PAGINATE, buildOnboardingTimeHint, buildStartingGearHint, buildOnboardingActiveBlocks, buildCombatAndSkillScalingHint, resolveTimePromptKey, resolveTimePromptDisplayTag, buildCyoaPrompt, DEFAULT_CYOA_SLOTS, refreshCyoaConfigToShipped, formatTimeOfDay } from './constants.js';
 import { MODULE_NAME, DEFAULT_MODULES, MODULE_BOOK_CATEGORY, FULL_REVIEW_STATE_SYSTEM_PROMPT, FULL_REVIEW_USER_PROMPT_SUFFIX, getSettings, getBarBackground, migrateCustomFields, saveChatState, getActiveChatId, shouldPreserveLiveChatStateOnBoot, writeModuleSchemaBackup, getPendingModuleSchemaBackup, applyModuleSchemaBackup, applyDeletedCustomTagTombstones, recordDeletedCustomTags, clearDeletedCustomTagTombstones, saveProfile, deleteProfile, getEffectiveRouterCampaignPrefix, sanitizeCampaignPrefixString, buildNpcInstruction, LOREBOOK_FULL_AUDIT_INSTRUCTION, loadStockPromptsFromProfile, getNpcRelationshipMax, getNpcRelationshipMaxDefault, clampRelationshipValue, relationshipBarPct, getFriendshipTier, getAffectionTier, getRelTierBadgeStyle, getRelTierDetailedStyle, getRelTierDetailedLabelStyle, applyRelTierBadgeElement, sanitizeRouterState, rebuildAllModuleInstructions, adjustAllStoredTemplatesForTimeFormat, DEFAULT_NPC_SECTIONS, DEFAULT_PC_SECTIONS, computeBundledPromptsFingerprint, computeBundledPromptsFingerprintForSnapshot, normalizeBundledPromptsSnapshot, buildBundledPromptsSnapshot, getSnapshotCategoryBlocks, getPromptCategoryImpactBadge, PROMPT_DEFAULTS_CATEGORIES, PROMPT_DEFAULTS_CATEGORY_LABELS, getDefaultPortraitLocationSystemPrompt, getDefaultPortraitNpcSystemPrompt, getDefaultPortraitCharacterSystemPrompt, isShippedPortraitLocationSystemPrompt, findShippedPortraitLocationPresetId, FACTORY_PORTRAIT_PROMPT_PRESETS, resolveFactoryPortraitPromptBundle, getFactoryPortraitPromptPresetNameSet, DEFAULT_PORTRAIT_PROMPT_PRESET_ID, applyFactoryReset, clearExtensionLocalStorageUiState, stripChatStateGlobalUiPrefs, buildStateTrackerRelationshipCommandInstruction, extractStateTrackerRelationshipCommands, getRelationshipUpdateMode, RELATIONSHIP_UPDATE_MODES, resetLorebookPromptTemplates, writeCriticalSettingsBackup, stampCriticalSettingsSynced, applyCriticalSettingsBackup, isMainSyspromptBackupEnabled, captureMainSyspromptBackup, restoreMainSyspromptStash, hydrateMainSyspromptBackup, getEffectiveBackupText, getLiveMainSyspromptText, setLiveMainSyspromptText, maybeRestoreMainIfTrackerDisabled, isMainSyspromptSourceReady } from './state-manager.js';
 import { snapshotChatSetup, chatSetupsMatch, syncChatSetupCatalogs, removeChatSetupCatalogEntries, clearChatBoundActivations } from './src/state/chat-setup.js';
 import { buildDirectPromptSystemPrompt, DIRECT_PROMPT_SYSTEM_MODES } from './src/state/direct-prompt-system.js';
@@ -6,7 +6,7 @@ import { diffTextLines, diffHasChanges } from './prompt-diff.js';
 import { sendStateRequest, fetchOllamaModels, fetchOpenAIModels, testOpenAIConnection, getConnectionProfiles, getCurrentCompletionPreset, setCompletionPreset, syncCombatProfile, resetCombatProfileOverride, isCombatActive } from './llm-client.js';
 import { getDiceToolName, getDiceCommandName, getDiceCommandAliases, doDiceRoll, registerDiceFunctionTool, syncLocationMappingRuntime, syncDiceFunctionToolForRngContext, registerDiceSlashCommand, installInterceptor, getNarrativeBlocks, onGenerationStarted, onGenerationEnded, onMapArchitectAssistantMessage, handleRelationshipSwipeChange, applyStateTrackerRelationshipCommands, resetRouterTick, getRouterTick, getMapUpdaterTick, resetRouterAutoTick, getRouterSchedulerInternals, makeRngQueue, buildRngBlock, RNG_QUEUE_LEN } from './narrative-hooks.js';
 import { deduplicateMemo, mergeMemo, computeDelta, escapeHtml, escapeRegex, highlightParens, cleanToolCallMessage, cleanMessageContent, getLastUserAction, buildLorebookContext, buildModulesInstructionText, buildModuleFormatInstruction, parseQuestsFromMemo, syncQuestsFromMemo, syncQuestsToMemo, writeQuestsToMemo, getQuestMood, extractCurrentTimeStr, stripArchivedQuestsFromMemo, stripCompletedQuestsFromMemo, applyQuestSyncAndStripMemo, isArchivedQuestStatus, removeArchivedQuest, parseInWorldTime, formatInWorldTime, sanitizeLorebookRecordContent, memoForTrackerContext, memoForGmContext } from './memo-processor.js';
-import { renderSubFieldByRule, tryRenderMarker, renderCustomBlockLine, stripMemoHtml, escapeHtmlWithColor, parseMemoBlocks, getPageSize, loadCollapsed, saveCollapsed, loadDetached, saveDetached, loadPartyCompact, savePartyCompact, blockToItems, renderMemoAsCards, renderTabModeView, renderBottomXpBar, renderQuestLog, renderLorebookTerminal, loadActiveTab, saveActiveTab, getTimeOfDayInfo, renderDayNightBadge, MARKER_TYPE_MAP, getMarkerLibraryKeys, loadBenchedExpanded, saveBenchedExpanded } from './renderer.js';
+import { renderSubFieldByRule, tryRenderMarker, renderCustomBlockLine, stripMemoHtml, escapeHtmlWithColor, parseMemoBlocks, getPageSize, loadCollapsed, saveCollapsed, loadDetached, saveDetached, loadPartyCompact, savePartyCompact, blockToItems, renderMemoAsCards, renderTabModeView, renderQuestLog, renderLorebookTerminal, loadActiveTab, saveActiveTab, getTimeOfDayInfo, renderDayNightBadge, MARKER_TYPE_MAP, getMarkerLibraryKeys, loadBenchedExpanded, saveBenchedExpanded } from './renderer.js';
 import { unregisterLogQuestTool, checkQuestDeadlines, renderQuestsAsPlainText } from './quests.js';
 import { initializeDebugViewer, toggleDebugViewer } from './debug-viewer.js';
 import { installSwipeSchedulerDebug } from './swipe-scheduler-debug.js';
@@ -83,7 +83,7 @@ import {
 } from './src/ui/settings-overlay.js';
 import { installApiSetupGate, showApiSetupGate, syncApiSetupGate } from './src/ui/api-setup-gate.js';
 import { restoreEscapedCyoaChoiceMarkup } from './src/ui/panel/cyoa-markup.js';
-import { captureXpGainAnimationState, playXpGainAnimation } from './src/ui/panel/xp-gain-animation.js';
+import { applyLevelFreeProgressionGuard } from './src/state/level-free-progression.js';
 import { captureBarChangeAnimationState, playBarChangeAnimations } from './src/ui/panel/bar-change-animation.js';
 import { buildCombatDisplayMemo } from './src/state/combat-persistence.js';
 import { isRealtimeVisualizationDisabled } from './src/state/realtime-visualization-guard.js';
@@ -2176,10 +2176,6 @@ function syncOnboardingUI() {
     onboarding.querySelectorAll('#rt-onboarding-gear-tier, #rt-cr-gear-tier').forEach(sel => {
         if (sel instanceof HTMLSelectElement && sel.value !== gearTier) sel.value = gearTier;
     });
-    const levelPref = s.onboardingLevel === 'none' ? 'none' : String(s.onboardingLevel || 1);
-    onboarding.querySelectorAll('#rt-starting-level, #rt-cr-level').forEach(sel => {
-        if (sel instanceof HTMLSelectElement && sel.value !== levelPref) sel.value = levelPref;
-    });
     const useCombatGuide = s.onboardingUseCombatScalingGuide !== false;
     onboarding.querySelectorAll('#rt-onboarding-combat-guide-cb, #rt-cr-combat-guide-cb').forEach(cb => {
         if (cb instanceof HTMLInputElement) cb.checked = useCombatGuide;
@@ -3226,7 +3222,7 @@ async function runStateModelPass(narrativeOutput, isFullContext = false, overrid
 
         const modulesText = buildModulesInstructionText(settings);
         const coreTemplate = settings.fullReviewStateMode ? FULL_REVIEW_STATE_SYSTEM_PROMPT : settings.systemPromptTemplate;
-        let systemPrompt = coreTemplate.replace('{{modulesText}}', modulesText);
+        let systemPrompt = applyLevelFreeProgressionGuard(coreTemplate.replace('{{modulesText}}', modulesText));
         if (settings.npcRelationshipBars && getRelationshipUpdateMode(settings) === RELATIONSHIP_UPDATE_MODES.STATE_TRACKER) {
             systemPrompt += `\n\n${buildStateTrackerRelationshipCommandInstruction(
                 getNpcRelationshipMax(settings),
@@ -3371,10 +3367,6 @@ async function runStateModelPass(narrativeOutput, isFullContext = false, overrid
             // resurrect a stale/empty per-chat snapshot over this freshly-committed memo.
             // Always pin to the originating chat — never the post-switch active id.
             if (settings.chatLinkEnabled && passChatId) saveChatState(passChatId);
-
-            if (/LEVEL_UP=true/i.test(merged)) {
-                handleLevelUp();
-            }
 
             return delta;
         }
@@ -3588,16 +3580,6 @@ globalThis._rpgUpdateUIMemo = (text) => {
     if (typeof syncMemoView === 'function') syncMemoView();
     if (typeof refreshRenderedView === 'function') refreshRenderedView();
 };
-
-function handleLevelUp() {
-    const { sendSystemMessage } = SillyTavern.getContext();
-    toastr['success']("Level Up Detected! System prompt injected.", "RPG Tracker");
-
-    if (sendSystemMessage) {
-        sendSystemMessage('generic', "SYSTEM: Level Up Detected! The character has gained a level. Acknowledge this immediately and prompt the user to make their level-up choices or grant them their logical boons.");
-    }
-}
-
 
 
 /**
@@ -5261,7 +5243,7 @@ export function refreshRenderedView() {
     const displayMemo = substituteDisplayMacros(runtimeState.historyViewIndex === -1
         ? buildCombatDisplayMemo(memo, s.combatDefeatedUi)
         : memo);
-    const xpAnimationContext = `${getActiveChatId() || 'global'}::${runtimeState.historyViewIndex === -1 ? 'live' : `history-${runtimeState.historyViewIndex}`}`;
+    const renderAnimationContext = `${getActiveChatId() || 'global'}::${runtimeState.historyViewIndex === -1 ? 'live' : `history-${runtimeState.historyViewIndex}`}`;
 
     const collapsed = loadCollapsed();
     const detached = loadDetached();
@@ -5272,10 +5254,7 @@ export function refreshRenderedView() {
 
     const el = document.getElementById('rpg-tracker-render');
     if (el) {
-        const bottomXp = /** @type {HTMLElement|null} */ (document.getElementById('rt-bottom-xp-bar'));
-        const xpAnimationHost = s.xpBarAtBottom === true ? bottomXp : el;
-        const capturedXp = captureXpGainAnimationState(xpAnimationHost, xpAnimationContext);
-        const capturedBars = captureBarChangeAnimationState(el, xpAnimationContext);
+        const capturedBars = captureBarChangeAnimationState(el, renderAnimationContext);
         const questsEnabled = s.syspromptModules?.quests !== false && !!(memo && memo.trim());
         let html;
 
@@ -5291,13 +5270,7 @@ export function refreshRenderedView() {
         }
 
         el.innerHTML = html;
-        if (bottomXp) {
-            const bottomXpHtml = s.xpBarAtBottom === true ? renderBottomXpBar(displayMemo) : '';
-            bottomXp.innerHTML = bottomXpHtml;
-            bottomXp.style.display = bottomXpHtml ? 'block' : 'none';
-        }
-        playXpGainAnimation(xpAnimationHost, capturedXp, xpAnimationContext);
-        playBarChangeAnimations(el, capturedBars, xpAnimationContext);
+        playBarChangeAnimations(el, capturedBars, renderAnimationContext);
         bindRenderedCardEvents(el, memo, false);
 
         // Restore Character Creator panel if it was open before the DOM swap (onboarding screen only)
@@ -5340,15 +5313,13 @@ export function refreshRenderedView() {
         if (panel) {
             const body = panel.querySelector('.rpg-tracker-detached-body');
             if (body) {
-                const capturedXp = captureXpGainAnimationState(body, xpAnimationContext);
-                const capturedBars = captureBarChangeAnimationState(body, xpAnimationContext);
+                const capturedBars = captureBarChangeAnimationState(body, renderAnimationContext);
                 if (tag === 'QUESTS') {
                     body.innerHTML = renderQuestLog(getDisplayQuests(displayMemo), currentTime, collapsed, detached, 'QUESTS');
                 } else {
                     body.innerHTML = renderMemoAsCards(displayMemo, tag, _sectionPages);
                 }
-                playXpGainAnimation(body, capturedXp, xpAnimationContext);
-                playBarChangeAnimations(body, capturedBars, xpAnimationContext);
+                playBarChangeAnimations(body, capturedBars, renderAnimationContext);
                 bindRenderedCardEvents(body, memo, true);
             }
         } else {
@@ -5729,13 +5700,13 @@ const RENDER_HINTS = {
     },
     COMBAT: {
         label: 'Entity Rows — HP Bars (Enemies)',
-        description: 'Entity rows with COMBAT ROUND header. Martial: weapon Att/def. Caster: Spell Atk + Spell DC + backup weapon, then Cantrips/Level N Spells lines (same rendering as PARTY).',
-        example: 'COMBAT ROUND 1\nCultist Acolyte: 15/15 HP\nAtt/def: Spell Atk +4 | Spell DC 14 | Dagger (1 attack, +1 / 1d4-1 Piercing) | Robes (AC: 11)\nSaves: Fort +1, Ref +2, Will +3\nAbilities: Spellcasting\nSpells: Cantrips: Fire Bolt, Prestidigitation\nSpells: Level 1 (2/2): Magic Missile, Shield\nOther: Soldier Tier Spellcaster\nStatus: Healthy\n\nElite Enforcer: 42/42 HP\nAtt/def: Warhammer (2 attacks, +9/+4 / 1d10+4 Bludgeoning) | Plate Armor (AC: 17)\nSaves: Fort +5, Ref +3, Will +4\nAbilities: Brutal Strike (On a Warhammer hit, deal +1d10 Bludgeoning damage and force a Fort DC 16 save or knock the target prone; 2/2)\nOther: Elite Tier\nStatus: Healthy'
+        description: 'Entity rows with COMBAT ROUND header. Martial: weapon Att/def. Caster: Spell Atk + Spell DC + backup weapon, then Cantrips/Rank N Spells lines (same rendering as PARTY).',
+        example: 'COMBAT ROUND 1\nCultist Acolyte: 15/15 HP\nAtt/def: Spell Atk +4 | Spell DC 14 | Dagger (1 attack, +1 / 1d4-1 Piercing) | Robes (AC: 11)\nSaves: Fort +1, Ref +2, Will +3\nAbilities: Spellcasting\nSpells: Cantrips: Fire Bolt, Prestidigitation\nSpells: Rank I (2/2): Magic Missile, Shield\nOther: Soldier Tier Spellcaster\nStatus: Healthy\n\nElite Enforcer: 42/42 HP\nAtt/def: Warhammer (2 attacks, +9/+4 / 1d10+4 Bludgeoning) | Plate Armor (AC: 17)\nSaves: Fort +5, Ref +3, Will +4\nAbilities: Brutal Strike (On a Warhammer hit, deal +1d10 Bludgeoning damage and force a Fort DC 16 save or knock the target prone; 2/2)\nOther: Elite Tier\nStatus: Healthy'
     },
     SPELLS: {
         label: 'Spell Pips — Slot Tracker',
-        description: 'One line per spell level. Cantrips: comma-separated names. Slots: "Level N (available/max): Spell1, Spell2".',
-        example: 'Cantrips: Guidance, Resistance\nLevel 1 (2/2): Cure Wounds, Shield of Faith\nLevel 2 (1/3): Hold Person, Silence'
+        description: 'One line per spell rank. Cantrips: comma-separated names. Slots: "Rank I (available/max): Spell1, Spell2".',
+        example: 'Cantrips: Guidance, Resistance\nRank I (2/2): Cure Wounds, Shield of Faith\nRank II (1/3): Hold Person, Silence'
     },
     INVENTORY: {
         label: 'Bullet Points — Item List',
@@ -5755,7 +5726,6 @@ const ROW_TYPE_OPTIONS = [
     ['badge', 'Badge (single chip)'],
     ['highlight', 'Highlight (paren emphasis)'],
     ['hp_bar', 'HP Bar (X/Y progress)'],
-    ['xp_bar', 'XP Bar (X/Y with optional level)'],
     ['kv', 'Key / Value pair'],
     ['text', 'Plain Text'],
 ];
@@ -5987,9 +5957,9 @@ export function buildSysprompt(rawText) {
             .replace(/.*\[RNG_QUEUE(?:_d100)?\s+v[\d.]+[^\]]*\].*\n?/gi, '');
     }
 
-    return content
+    return applyLevelFreeProgressionGuard(content
         .replace(/\n{3,}/g, "\n\n")
-        .trim();
+        .trim());
 }
 
 /**
@@ -6372,7 +6342,6 @@ function organizeConnectionSettingsUI() {
         buildNpcInstruction,
         buildOnboardingActiveBlocks,
         buildOnboardingTimeHint,
-        buildOnboardingXpHint,
         buildStartingGearHint,
         createDetachedPanel,
         createOrSelectGameMasterCard,
@@ -7556,11 +7525,6 @@ function organizeConnectionSettingsUI() {
             refreshRenderedView();
         });
 
-        $('#rpg_tracker_xp_bar_bottom').prop('checked', !!settings.xpBarAtBottom).on('change', function () {
-            settings.xpBarAtBottom = !!$(this).prop('checked');
-            saveSettings();
-            refreshRenderedView();
-        });
 
         // Panel background images (State Tracker + detached Lorebook Agent)
         /** @param {string} idPrefix @param {{ dayKey: string, nightKey: string, strengthKey: string }} keys */
@@ -9656,7 +9620,7 @@ RULES:
 
             let html = `<div class="rpg-tracker-panel ${themeClass}" style="display:flex; flex-direction:column; gap:8px; max-height:60vh; overflow-y:auto; padding-right:10px; position:relative; top:auto; right:auto; width:100%; height:auto; background:transparent; border:none; box-shadow:none; resize:none;">`;
             html += `<div style="font-size:0.85em; opacity:0.85; padding:6px 8px; border:1px solid rgba(255,221,136,0.3); border-radius:6px; background:rgba(255,221,136,0.06);">
-                💡 Color any tag with a named-color suffix, e.g. <code>((PILLPINK))</code>, <code>((BARRED))</code>, or <code>((PROGRESSGOLDENROD))</code>. For an exact named or hex color, use <code>((TAG - COLOR))</code> (e.g. <code>((PILLS - rebeccapurple))</code> or <code>((PLS - #E5FFCC))</code>). Bar-type tags (<code>((BAR))</code>, <code>((XPBAR))</code>, <code>((PROGRESS))</code>) additionally support a two-color gradient: <code>((BAR - #E5FFCC #003300))</code>.
+                💡 Color any tag with a named-color suffix, e.g. <code>((PILLPINK))</code>, <code>((BARRED))</code>, or <code>((PROGRESSGOLDENROD))</code>. For an exact named or hex color, use <code>((TAG - COLOR))</code> (e.g. <code>((PILLS - rebeccapurple))</code> or <code>((PLS - #E5FFCC))</code>). Bar-type tags (<code>((BAR))</code>, <code>((PROGRESS))</code>) additionally support a two-color gradient: <code>((BAR - #E5FFCC #003300))</code>.
             </div>`;
             for (let i = 0; i < RENDERING_TAGS_LIBRARY.length; i++) {
                 const item = RENDERING_TAGS_LIBRARY[i];
@@ -12806,7 +12770,6 @@ RULES:
             $('#rpg_tracker_chat_setup_link_enabled').prop('checked', !!s.chatSetupLinkEnabled);
             $('#rpg_tracker_debug').prop('checked', !!s.debugMode);
             $('#rpg_tracker_daynight_cycle').prop('checked', !!s.dayNightCycleEnabled);
-            $('#rpg_tracker_xp_bar_bottom').prop('checked', !!s.xpBarAtBottom);
             if (typeof globalThis._rpgSyncPanelBgSettingsUi === 'function') {
                 globalThis._rpgSyncPanelBgSettingsUi();
             } else {

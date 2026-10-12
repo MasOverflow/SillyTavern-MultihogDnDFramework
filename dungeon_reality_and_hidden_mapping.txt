@@ -43,7 +43,7 @@ Does not: ordinary shop, inn room, alley, single apartment, low-stakes warehouse
 - `site` and `entrance`: the exact names this map will use. Invent `site` when creating a new dungeon/interior you are about to enter. After the map exists, copy that exact `site` name into the Location footer. Never translate, expand, or retitle an already-mapped name. Similar structural names remain distinct: `Cellar Crypt` is not `Cellar Crypt Dungeon`.
 - `attachTo`: optional offsite nesting address containing exact parent `site` and exact parent AREA `cell`. Omit it for a standalone map or deliberate active-cell shorthand.
 - `scale`: geographic size, independent of danger.
-- `threat`: NONE, LOW, MODERATE, HIGH, or DEADLY; never adjusted for party level.
+- `threat`: NONE, LOW, MODERATE, HIGH, or DEADLY; never adjusted to match party capability or equipment.
 - `include`: optional exact existing DUNGEON/INTERIOR names, creation-only for SETTLEMENT absorption.
 </field_rules>
 

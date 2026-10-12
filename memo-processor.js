@@ -11,6 +11,7 @@
 
 import { getSettings } from './state-manager.js';
 import { DEFAULT_STOCK_PROMPTS, resolveTimePromptKey } from './constants.js';
+import { applyLevelFreeProgressionGuard, stripLegacyXpBlocks } from './src/state/level-free-progression.js';
 import {
     partitionResolvedCombatants,
     stripResolvedCombatantsFromMemo,
@@ -1078,7 +1079,7 @@ export function hydratePartyRelocationStats(priorMemo, mergedMemo) {
  * @returns {string}
  */
 export function memoForTrackerContext(memo) {
-    const activeMemo = stripResolvedCombatantsFromMemo(memo || '');
+    const activeMemo = stripLegacyXpBlocks(stripResolvedCombatantsFromMemo(memo || ''));
     return compactBenchedPartyForContext(stripCompletedQuestsFromMemo(activeMemo));
 }
 
@@ -1096,7 +1097,7 @@ export function memoForTrackerContext(memo) {
  * @returns {string}
  */
 export function memoForGmContext(memo) {
-    const activeMemo = stripResolvedCombatantsFromMemo(memo || '');
+    const activeMemo = stripLegacyXpBlocks(stripResolvedCombatantsFromMemo(memo || ''));
     const stripped = activeMemo.replace(/\[QUESTS\][\s\S]*?\[\/QUESTS\]/gi, '').trim();
     const noMarkers = stripped
         .replace(/\(\([^)]*\)\)/g, '')
@@ -1749,6 +1750,8 @@ export function buildModulesInstructionText(settings) {
     for (const [key, prompt] of Object.entries(promptsMap)) {
         // Never emit helper prompts as their own modules
         if (key === 'time_24h' || key === 'time_ddmmyy' || key === 'time_ddmmyy_24h') continue;
+        // Legacy XP module definitions remain saved but are never active.
+        if (key.toLowerCase() === 'xp') continue;
 
         if (key === 'quests' && settings.syspromptModules?.quests === false) continue;
         if (settings.modules[key]) {
@@ -1801,7 +1804,7 @@ export function buildModulesInstructionText(settings) {
         modulesText += `\n### CAMPAIGN TIMING RULES\n- The campaign starting date is ${settings.initialDate}. Ensure the very first [TIME] block and all early timeline entries align with this starting anchor.\n`;
     }
 
-    const enabledCustomFields = (settings.customFields || []).filter(f => f.enabled && f.tag);
+    const enabledCustomFields = (settings.customFields || []).filter(f => f.enabled && f.tag && String(f.tag).trim().toUpperCase() !== 'XP');
     if (enabledCustomFields.length > 0) {
         modulesText += "\n### CUSTOM MODULES\n";
         enabledCustomFields.forEach(f => {
@@ -1811,7 +1814,7 @@ export function buildModulesInstructionText(settings) {
             }
         });
     }
-    return modulesText.trim();
+    return applyLevelFreeProgressionGuard(modulesText.trim());
 }
 
 export function buildModuleFormatInstruction(field) {

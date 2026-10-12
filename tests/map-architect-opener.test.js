@@ -86,8 +86,8 @@ scale: Small-to-medium buried pre-Fall installation, roughly 8–12 connected ch
 premise: Local rumor claims an untouched cache of lost technology and salvage lies below, but the hatch has been shunned for cycles due to unstable structure, toxic seepage, and rumors of automated defenses.
 [/CREATE_AREA_MAP]
 
-(Status: 54/54 HP) | (XP: 0/23,000) | (Location: Rustmire Expanse, Salvage Ward, Buried Access Hatch 7)
-Level 6 | 08:00 AM, Day 1`);
+(Status: 54/54 HP) | (Location: Rustmire Expanse, Salvage Ward, Buried Access Hatch 7)
+08:00 AM, Day 1`);
 
         expect(parsed.args).toEqual({
             site: 'Rustmire Expanse, Salvage Ward, Buried Access Hatch 7',
@@ -195,8 +195,8 @@ scale: MEDIUM
 premise: Abandoned underground vault, rumored pre-Fall salvage; entry through a corroded hatch.
 [/CREATE_AREA_MAP]
 
-*(Status: 54/54) | (XP: 0/23,000) | (Location: Outer Verge, Rustmire Flats, The Sunken Hatch)*
-*Level 6 | 08:05 AM, Day 1*`);
+*(Status: 54/54) | (Location: Outer Verge, Rustmire Flats, The Sunken Hatch)*
+*08:05 AM, Day 1*`);
         expect(parsed.args.site).toBe('The Sunken Hatch');
         expect(parsed.args.entrance).toBe('Rusty Hatch Cover');
         expect(parsed.args.threat).toBe('HIGH');

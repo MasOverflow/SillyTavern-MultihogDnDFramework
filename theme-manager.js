@@ -338,7 +338,6 @@ export function handleRecolor(barId, currentBg, targetEl) {
             }
             document.querySelectorAll(`[data-recolor-id="${CSS.escape(barId)}"]`).forEach(wrap => {
                 if (wrap.classList.contains('rt-hp-bar-wrap')) { wrap.querySelector('.rt-hp-bar').style.background = bg; }
-                else if (wrap.classList.contains('rt-xp-bar-wrap')) { wrap.querySelector('.rt-xp-bar').style.background = bg; }
                 else if (wrap.classList.contains('rt-progress-bar-wrap')) { wrap.querySelector('.rt-progress-bar').style.background = bg; }
                 else if (wrap.classList.contains('rt-weight-bar-wrap')) { wrap.querySelector('.rt-weight-bar').style.background = bg; }
                 else if (wrap.classList.contains('rt-gauge-wrap')) { wrap.querySelector('.rt-gauge-bg').style.background = bg; }

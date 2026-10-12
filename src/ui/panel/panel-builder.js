@@ -27,6 +27,7 @@ import { clearMemoAndMapHistory, getDungeonMapHistoryEntry } from '../../state/d
 import { isLorebookAgentRuntimeActive, isLocationMappingEnabled } from '../../state/section-enabled.js';
 import { openDungeonMapReadablePopup } from './dungeon-map-panel.js';
 import { buildAddLibraryNpcToPartyPrompt, buildApplyLibraryCardAsPcPrompt, extractLibraryIdentityContent, findLibraryNpcByName, getNpcLibrary, sanitizeNpcLibraryRecords } from '../../../npc-library-lib.js';
+import { applyLevelFreeProgressionGuard } from '../../state/level-free-progression.js';
 
 const MAPS_GUIDE_HTML = `
     <div style="padding:24px;max-width:760px;max-height:calc(85vh - 48px);box-sizing:border-box;overflow-y:auto;text-align:left;font-family:var(--rt-font,system-ui,sans-serif);color:var(--SmartThemeBodyColor,inherit);line-height:1.55;">
@@ -4328,7 +4329,7 @@ export function createPanel(dependencies) {
                 if (charData?.description) contextParts.push(`NARRATOR/WORLD CARD:\n${charData.description.substring(0, 1500)}`);
             } catch (_) { }
 
-            const systemPrompt = `${s.routerSystemPromptTemplate || ''}
+            const systemPrompt = applyLevelFreeProgressionGuard(`${s.routerSystemPromptTemplate || ''}
 
 ---
 
@@ -4344,7 +4345,7 @@ RULES:
 - Your output MUST be strictly formatted as:
   [[NPC: Name | Description | keywords]]
 - Output ONLY this single [[NPC: ...]] tag. No preamble or explanation.
-- Do NOT use the "|\'" character inside the Description; use newlines to separate internal sections.`;
+- Do NOT use the "|\'" character inside the Description; use newlines to separate internal sections.`);
 
             const userPrompt = contextParts.join('\n\n---\n\n');
             const aiSettings = {
@@ -4423,7 +4424,7 @@ RULES:
             const coreSections = s.npcCoreSections && Array.isArray(s.npcCoreSections) && s.npcCoreSections.length > 0 ? s.npcCoreSections : DEFAULT_NPC_SECTIONS;
             const sectionNamesList = coreSections.map(sec => sec.name).join(', ');
 
-            const systemPrompt = `${s.routerSystemPromptTemplate || ''}
+            const systemPrompt = applyLevelFreeProgressionGuard(`${s.routerSystemPromptTemplate || ''}
 
 ---
 
@@ -4443,7 +4444,7 @@ Rules:
 - Replace "Description" with the full formatted description section. Wrap all the immutable identity sections (${sectionNamesList}) inside a single [CORE] and [/CORE] tag block within the Description. DO NOT include a Relationship field. DO NOT use the "|" character inside the Description; separate the internal sections using newlines.
 - CRITICAL: Do NOT blindly copy the formatting or sections of other characters found in ACTIVE MEMORY. You MUST strictly use ONLY the sections instructed below (${sectionNamesList}) and ignore any other sections.
 - Replace "keywords" with a comma-separated list of keywords including their name.
-- Output ONLY this single [[NPC: ...]] string. No preamble, no explanation, no other tags.`;
+- Output ONLY this single [[NPC: ...]] string. No preamble, no explanation, no other tags.`);
 
             const userPrompt = contextParts.join('\n\n---\n\n');
 
@@ -4533,7 +4534,7 @@ Rules:
             const sectionNamesList = coreSections.map(sec => sec.name).join(', ');
 
             const namingRule = substituteDisplayMacros(NEW_NPC_NAMING_RULE);
-            const systemPrompt = `${s.routerSystemPromptTemplate || ''}
+            const systemPrompt = applyLevelFreeProgressionGuard(`${s.routerSystemPromptTemplate || ''}
 
 ---
 
@@ -4557,7 +4558,7 @@ Rules:
 - Replace "keywords" with a comma-separated list including their name.
 - Output ONLY this single [[NPC: ...]] tag. No preamble, no explanation.
 
-${namingRule}`;
+${namingRule}`);
 
             const aiSettings = {
                 connectionSource: s.routerConnectionSource ?? 'default',
@@ -4603,7 +4604,7 @@ ${namingRule}`;
             const sectionNamesList = coreSections.map(sec => sec.name).join(', ');
 
             const namingRule = substituteDisplayMacros(NEW_NPC_NAMING_RULE);
-            const systemPrompt = `${s.routerSystemPromptTemplate || ''}
+            const systemPrompt = applyLevelFreeProgressionGuard(`${s.routerSystemPromptTemplate || ''}
 
 ---
 
@@ -4627,7 +4628,7 @@ Rules:
 - Replace "keywords" with a comma-separated list including their name.
 - Output ONLY this single [[NPC: ...]] tag. No preamble, no explanation.
 
-${namingRule}`;
+${namingRule}`);
 
             const aiSettings = {
                 connectionSource: s.routerConnectionSource ?? 'default',
@@ -6836,8 +6837,6 @@ ${namingRule}`;
         } else {
             taEl.style.display = '';
             rvEl.style.display = 'none';
-            const bottomXpEl = panel.querySelector('#rt-bottom-xp-bar');
-            if (bottomXpEl) bottomXpEl.style.display = 'none';
             viewBtnEl.textContent = '⊞';
             viewBtnEl.title = 'Switch to Rendered view';
         }
